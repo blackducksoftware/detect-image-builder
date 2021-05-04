@@ -1,0 +1,25 @@
+# operating system
+.DS_Store
+
+# ide
+.settings/
+.classpath
+.project
+bin/
+.idea
+*.iml
+out/
+
+# python
+venv/
+
+# build tool
+.gradle/
+build/
+
+version.txt
+swip.yml
+.swip/
+.swip-Coverity-2018.12.zip
+docs/site/
+docs/generated/
