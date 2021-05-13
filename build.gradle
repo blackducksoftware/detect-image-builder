@@ -3,21 +3,12 @@ buildscript {
     apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-dependencies.gradle', to: buildscript
 }
 
-plugins {
-    id 'java'
-}
-
-group 'com.synopsys.integration.blackduck'
 version '1.0-SNAPSHOT'
 
-apply plugin: 'groovy'
-
-sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
+apply plugin: 'com.synopsys.integration.solution'
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation 'com.synopsys.integration:integration-common:24.3.0'
+    implementation 'org.slf4j:slf4j-api:1.7.30'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
 }

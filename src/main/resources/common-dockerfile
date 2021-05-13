@@ -1,0 +1,29 @@
+FROM alpine:latest
+
+ARG DETECT_FILES_DIR
+ARG DETECT_JAR_NAME
+
+ARG PKG_MGR_FILES_DIR
+ARG PKG_MGR_VERSION_CMD
+
+ARG JAVA_VERSION
+
+# Update, get bash
+RUN apk update && apk add bash
+
+# Java
+RUN apk add openjdk${JAVA_VERSION} --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
+
+# Copy in Detect files
+ADD ${DETECT_FILES_DIR} /detect/
+
+# Make it easy to call jar without knowing version
+RUN ln -s /detect/${DETECT_JAR_NAME} synopsys-detect.jar
+
+# Copy in Package Manager files
+ADD ${PKG_MGR_FILES_DIR} /usr/local/
+
+RUN ${PKG_MGR_VERSION_CMD} && java --version
+
+# Define Docker Image entrypoint
+ENTRYPOINT ["bash", "/detect/run-detect.sh"]
