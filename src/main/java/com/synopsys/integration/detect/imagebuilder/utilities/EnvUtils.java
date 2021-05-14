@@ -10,9 +10,10 @@ package com.synopsys.integration.detect.imagebuilder.utilities;
 import java.io.File;
 import java.net.URISyntaxException;
 
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.jetbrains.annotations.Nullable;
 
 public class EnvUtils {
     private Logger logger = LoggerFactory.getLogger(getClass());

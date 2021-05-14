@@ -1,18 +1,21 @@
 #!/bin/bash
 
-while getopts d:p:n:v:i:e:j:f:o: flag
+while getopts d:p:n:j: flag
 do
     case "${flag}" in
-        d) dockerfilePath=${OPTARG};;
         p) pkgMgrFilesPath=${OPTARG};;
-        n) pkgMgrName=${OPTARG};;
-        v) pkgMgrVersionCmd=${OPTARG};;
-        i) imageName=${OPTARG};;
-        e) detectFilesPath=${OPTARG};;
-        j) javaVersion=${OPTARG};;
-        f) dockerfileName=${OPTARG};;
-        o) detectJarName=${OPTARG};;
+        d) detectFilesPath=${OPTARG};;
+        j) detectJarName=${OPTARG};;
+        n) pkgFilesDirName=${OPTARG};;
     esac
 done
 
-# Delete jar from DETECT_FILES, everything in PKG_MGR_FILES
+# Delete jar from DETECT_FILES
+cd ${detectFilesPath}
+
+rm -f ${detectJarName}
+
+# Delete everything in PKG_MGR_FILES
+cd {pkgMgrFilesPath}/..
+
+rm -rf ${pkgFilesDirName} && mkdir ${pkgFilesDirName}

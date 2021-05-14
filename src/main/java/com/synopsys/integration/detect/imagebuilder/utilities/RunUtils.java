@@ -1,3 +1,10 @@
+/*
+ * detect-image-builder
+ *
+ * Copyright (c) 2021 Synopsys, Inc.
+ *
+ * Use subject to the terms and conditions of the Synopsys End User Software License and Maintenance Agreement. All rights reserved worldwide.
+ */
 package com.synopsys.integration.detect.imagebuilder.utilities;
 
 import java.io.File;
@@ -52,10 +59,6 @@ public class RunUtils {
             if (output.getReturnCode() != 0) {
                 logger.warn(String.format("Standard output from command %s: %s", command.toString(), output.getStandardOutput()));
                 logger.warn(String.format("Error output from command %s: %s", command.toString(), output.getErrorOutput()));
-
-                //TODO- Delete
-                System.out.println(String.format("Standard output from command %s: %s", command.toString(), output.getStandardOutput()));
-                System.out.println(String.format("Error output from command %s: %s", command.toString(), output.getErrorOutput()));
             }
         } catch (ExecutableRunnerException e) {
             logger.warn(String.format("Execution of script %s failed.", pathToDownloadScript));

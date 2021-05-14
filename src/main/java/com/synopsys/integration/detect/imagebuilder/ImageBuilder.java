@@ -28,6 +28,8 @@ public class ImageBuilder {
     private static String DETECT_FILES_PATH = envUtils.getEnv("DETECT_FILES_PATH", String.format("%s/DETECT_FILES", RESOURCE_FILES_PATH));
     private static String PKG_MGR_FILES_DIR_NAME = envUtils.getEnv("PKG_MGR_FILES_DIR_NAME","PKG_MGR_FILES");
     private static String PKG_MGR_FILES_PATH = envUtils.getEnv("PKG_MGR_FILES_PATH", String.format("%s/%s", RESOURCE_FILES_PATH, PKG_MGR_FILES_DIR_NAME));
+    private static String CLEANUP_RESOURCE_FILES = envUtils.getEnv("CLEANUP_RESOURCE_FILES", "TRUE");
+    private static String CLEANUP_SCRIPT_NAME = "cleanup.sh";
 
     public static void main(String[] args) throws Exception {
         Supported supported = new Supported();
@@ -55,22 +57,33 @@ public class ImageBuilder {
                         }
 
                         // Build image
-                        Map<String, String> scriptArgs = new HashMap<>();
-                        scriptArgs.put("-d", DOCKERFILES_PATH);
-                        scriptArgs.put("-f", pkgMgr.getDockerfileName());
-                        scriptArgs.put("-p", String.format("%s/%s/%s/%s", PKG_MGR_FILES_DIR_NAME, pkgMgrName, pkgMgrVersion, pkgMgrName));
-                        scriptArgs.put("-n", pkgMgrName);
-                        scriptArgs.put("-v", pkgMgr.getVersionCmd());
-                        scriptArgs.put("-i", imageName);
-                        scriptArgs.put("-e", DETECT_FILES_DIR_NAME);
-                        scriptArgs.put("-o", downLoadedDetectJarName);
-                        scriptArgs.put("-j", javaVersion);
+                        Map<String, String> buildArgs = new HashMap<>();
+                        buildArgs.put("-d", DOCKERFILES_PATH);
+                        buildArgs.put("-f", pkgMgr.getDockerfileName());
+                        buildArgs.put("-p", String.format("%s/%s/%s/%s", PKG_MGR_FILES_DIR_NAME, pkgMgrName, pkgMgrVersion, pkgMgrName));
+                        buildArgs.put("-n", pkgMgrName);
+                        buildArgs.put("-v", pkgMgr.getVersionCmd());
+                        buildArgs.put("-i", imageName);
+                        buildArgs.put("-e", DETECT_FILES_DIR_NAME);
+                        buildArgs.put("-o", downLoadedDetectJarName);
+                        buildArgs.put("-j", javaVersion);
 
-                        runUtils.runScript(BUILD_IMAGES_SCRIPT_NAME, scriptArgs);
+                        runUtils.runScript(BUILD_IMAGES_SCRIPT_NAME, buildArgs);
 
                         // TODO- Push image to internal artifactory
                         // TODO- what about signing images (only an issue externally)?
                         //      publish to public-facing Artifactory as well as Docker Hub --> collab w/ releng team to handle builds that sign/deploy built images
+
+                        // Cleanup Detect jar, package manager files
+                        if (CLEANUP_RESOURCE_FILES.equalsIgnoreCase("TRUE")) {
+                            Map<String, String> cleanupArgs = new HashMap<>();
+                            cleanupArgs.put("-d", DETECT_FILES_PATH);
+                            cleanupArgs.put("-j", downLoadedDetectJarName);
+                            cleanupArgs.put("-n", PKG_MGR_FILES_DIR_NAME);
+                            cleanupArgs.put("-p", PKG_MGR_FILES_PATH);
+
+                            //runUtils.runScript(CLEANUP_SCRIPT_NAME, cleanupArgs);
+                        }
                     }
                 }
             }
