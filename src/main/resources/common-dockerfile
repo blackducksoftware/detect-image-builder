@@ -12,7 +12,9 @@ ARG JAVA_VERSION
 RUN apk update && apk add bash
 
 # Java
-RUN apk add openjdk${JAVA_VERSION} --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
+RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
+
+ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 
 # Copy in Detect files
 ADD ${DETECT_FILES_DIR} /detect/

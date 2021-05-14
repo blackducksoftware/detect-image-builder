@@ -23,7 +23,7 @@ class Supported {
 
     private List<String> detectVersions = Arrays.asList("latest"); // default Detect version list
     private List<String> javaVersions = Arrays.asList("11"); // default Java version list
-    private List<String> gradleVersions = Arrays.asList("6.8.2");
+    private List<String> gradleVersions = Arrays.asList("6.7.1");
     private List<String> mavenVersions = Arrays.asList("3.8.1");
 
 

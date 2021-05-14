@@ -22,12 +22,12 @@ public class ImageBuilder {
 
     private static String BUILD_IMAGES_SCRIPT_NAME = "build-images.sh";
     private static String IMAGE_REPO = "blackducksoftware";
-    private static String RESOURCE_FILES_PATH = "src/main/resources"; //TODO- can we get this programatically?
-    private static String DOCKERFILE_PATH = RESOURCE_FILES_PATH;
-    private static String DETECT_FILES_DIR_NAME = "DETECT_FILES";
+    private static String RESOURCE_FILES_PATH = envUtils.getEnv("RESOURCES_PATH", "src/main/resources");
+    private static String DOCKERFILES_PATH = envUtils.getEnv("DOCKERFILES_PATH", RESOURCE_FILES_PATH);
+    private static String DETECT_FILES_DIR_NAME = envUtils.getEnv("DETECT_FILES_DIR_NAME", "DETECT_FILES");
     private static String DETECT_FILES_PATH = envUtils.getEnv("DETECT_FILES_PATH", String.format("%s/DETECT_FILES", RESOURCE_FILES_PATH));
-    private static String PKG_MGR_FILES_DIR_NAME = "PKG_MGR_FILES";
-    private static String PKG_MGR_FILES_PATH = String.format("%s/%s", RESOURCE_FILES_PATH, PKG_MGR_FILES_DIR_NAME);
+    private static String PKG_MGR_FILES_DIR_NAME = envUtils.getEnv("PKG_MGR_FILES_DIR_NAME","PKG_MGR_FILES");
+    private static String PKG_MGR_FILES_PATH = envUtils.getEnv("PKG_MGR_FILES_PATH", String.format("%s/%s", RESOURCE_FILES_PATH, PKG_MGR_FILES_DIR_NAME));
 
     public static void main(String[] args) throws Exception {
         Supported supported = new Supported();
@@ -51,12 +51,12 @@ public class ImageBuilder {
 
                         // Download Package Manager files
                         if (pkgMgr.hasDownloader()) {
-                            pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false); //TODO- should we throw exception on failed download of pkg mgr?
+                            pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false);
                         }
 
                         // Build image
                         Map<String, String> scriptArgs = new HashMap<>();
-                        scriptArgs.put("-d", DOCKERFILE_PATH);
+                        scriptArgs.put("-d", DOCKERFILES_PATH);
                         scriptArgs.put("-f", pkgMgr.getDockerfileName());
                         scriptArgs.put("-p", String.format("%s/%s/%s/%s", PKG_MGR_FILES_DIR_NAME, pkgMgrName, pkgMgrVersion, pkgMgrName));
                         scriptArgs.put("-n", pkgMgrName);
