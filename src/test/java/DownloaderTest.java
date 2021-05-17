@@ -15,12 +15,13 @@ import com.synopsys.integration.detect.imagebuilder.download.GradleDownloader;
 import com.synopsys.integration.detect.imagebuilder.download.MavenDownloader;
 
 class DownloaderTest {
+    private String scriptsPath = "src/main/resources/scripts";
     @ParameterizedTest
     @MethodSource("downloaderTestInputsProvider")
     void testDownloads(Downloader downloader, String downloadDir, String version) {
         File downloadDest = new File(String.format("test/%s", downloadDir));
         try {
-            downloader.downloadFiles(version, downloadDest.getAbsolutePath(), true);
+            downloader.downloadFiles(version, downloadDest.getAbsolutePath(), true, scriptsPath);
         } catch (DownloadFailedException e) {
             Assertions.fail();
         }

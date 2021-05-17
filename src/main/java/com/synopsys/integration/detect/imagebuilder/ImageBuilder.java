@@ -20,14 +20,16 @@ public class ImageBuilder {
     private static EnvUtils envUtils = new EnvUtils();
     private static RunUtils runUtils = new RunUtils();
 
-    private static String BUILD_IMAGES_SCRIPT_NAME = "build-images.sh";
-    private static String IMAGE_REPO = "blackducksoftware";
     private static String RESOURCE_FILES_PATH = envUtils.getEnv("RESOURCES_PATH", "src/main/resources");
     private static String DOCKERFILES_PATH = envUtils.getEnv("DOCKERFILES_PATH", RESOURCE_FILES_PATH);
     private static String DETECT_FILES_DIR_NAME = envUtils.getEnv("DETECT_FILES_DIR_NAME", "DETECT_FILES");
     private static String DETECT_FILES_PATH = envUtils.getEnv("DETECT_FILES_PATH", String.format("%s/DETECT_FILES", RESOURCE_FILES_PATH));
     private static String PKG_MGR_FILES_DIR_NAME = envUtils.getEnv("PKG_MGR_FILES_DIR_NAME","PKG_MGR_FILES");
     private static String PKG_MGR_FILES_PATH = envUtils.getEnv("PKG_MGR_FILES_PATH", String.format("%s/%s", RESOURCE_FILES_PATH, PKG_MGR_FILES_DIR_NAME));
+    private static String SCRIPTS_DIR_NAME = envUtils.getEnv("SCRIPTS_DIR_NAMW", "scripts");
+    private static String SCRIPTS_PATH = envUtils.getEnv("SCRIPTS_PATH", String.format("%s/%s", RESOURCE_FILES_PATH, SCRIPTS_DIR_NAME));
+    private static String BUILD_IMAGES_SCRIPT_NAME = "build-images.sh";
+    private static String IMAGE_REPO = "blackducksoftware";
     private static String CLEANUP_RESOURCE_FILES = envUtils.getEnv("CLEANUP_RESOURCE_FILES", "TRUE");
     private static String CLEANUP_SCRIPT_NAME = "cleanup.sh";
 
@@ -37,7 +39,7 @@ public class ImageBuilder {
             for (String pkgMgrVersion : pkgMgr.getVersions()) {
                 for (String detectVersion : pkgMgr.getDetectVersions()) {
                     // Download Detect
-                    downloadDetect(detectVersion, DETECT_FILES_PATH);
+                    downloadDetect(detectVersion, DETECT_FILES_PATH, SCRIPTS_PATH);
                     String downLoadedDetectJarName;
                     if (detectVersion.equalsIgnoreCase("LATEST")) {
                         downLoadedDetectJarName = getNameOfDownloadedDetectJar(DETECT_FILES_PATH);
@@ -53,7 +55,7 @@ public class ImageBuilder {
 
                         // Download Package Manager files
                         if (pkgMgr.hasDownloader()) {
-                            pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false);
+                            pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false, SCRIPTS_PATH);
                         }
 
                         // Build image
@@ -68,7 +70,8 @@ public class ImageBuilder {
                         buildArgs.put("-o", downLoadedDetectJarName);
                         buildArgs.put("-j", javaVersion);
 
-                        runUtils.runScript(BUILD_IMAGES_SCRIPT_NAME, buildArgs);
+                        String pathToBuildImagesScript = String.format("%s/%s", SCRIPTS_PATH, BUILD_IMAGES_SCRIPT_NAME);
+                        runUtils.runScript(pathToBuildImagesScript, buildArgs);
 
                         // TODO- Push image to internal artifactory
                         // TODO- what about signing images (only an issue externally)?
@@ -82,7 +85,8 @@ public class ImageBuilder {
                             cleanupArgs.put("-n", PKG_MGR_FILES_DIR_NAME);
                             cleanupArgs.put("-p", PKG_MGR_FILES_PATH);
 
-                            //runUtils.runScript(CLEANUP_SCRIPT_NAME, cleanupArgs);
+                            String pathToCleanupScript = String.format("%s/%s", SCRIPTS_PATH, CLEANUP_SCRIPT_NAME);
+                            //runUtils.runScript(pathToCleanupScript, cleanupArgs);
                         }
                     }
                 }
@@ -91,9 +95,9 @@ public class ImageBuilder {
 
     }
 
-    private static void downloadDetect(String detectVersion, String detectFilesPath) throws DownloadFailedException {
+    private static void downloadDetect(String detectVersion, String detectFilesPath, String scriptsPath) throws DownloadFailedException {
         DetectDownloader detectDownloader = new DetectDownloader();
-        detectDownloader.downloadFiles(detectVersion, detectFilesPath, true);
+        detectDownloader.downloadFiles(detectVersion, detectFilesPath, true, scriptsPath);
     }
 
     private static String getNameOfDownloadedDetectJar(String detectJarPath) throws Exception {

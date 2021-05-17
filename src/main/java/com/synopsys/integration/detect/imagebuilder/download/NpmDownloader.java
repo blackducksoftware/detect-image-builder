@@ -19,12 +19,12 @@ public class NpmDownloader extends Downloader {
     String scriptName = "download-npm.sh";
     String nodeBinaryArchitecture = "x64"; //TODO- can we hard-code what architecture this will be built in?
     @Override
-    public void downloadFiles(final String version, final String npmFilesDir, boolean throwExceptionOnFailedDownload) throws DownloadFailedException {
+    public void downloadFiles(final String version, final String npmFilesDir, boolean throwExceptionOnFailedDownload, String scriptsPath) throws DownloadFailedException {
         Map<String, String> scriptArgs = new HashMap<>();
         scriptArgs.put("-d", npmFilesDir);
         scriptArgs.put("-v", version);
         scriptArgs.put("-a", nodeBinaryArchitecture);
 
-        downloadUtils.downloadPkgMgrFiles("node", version, npmFilesDir, throwExceptionOnFailedDownload, scriptName, scriptArgs);
+        downloadUtils.downloadPkgMgrFiles("node", version, npmFilesDir, throwExceptionOnFailedDownload, scriptName, scriptArgs, scriptsPath);
     }
 }

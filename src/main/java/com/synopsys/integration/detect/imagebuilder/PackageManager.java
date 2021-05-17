@@ -50,8 +50,8 @@ public class PackageManager {
         return downloader != null;
     }
 
-    public void downloadFiles(String version, String destination, boolean throwExceptionOnFailedDownload) throws Exception {
-        downloader.downloadFiles(version, destination, throwExceptionOnFailedDownload);
+    public void downloadFiles(String version, String destination, boolean throwExceptionOnFailedDownload, String scriptsPath) throws Exception {
+        downloader.downloadFiles(version, destination, throwExceptionOnFailedDownload, scriptsPath);
     }
 
     public List<String> getDetectVersions() {

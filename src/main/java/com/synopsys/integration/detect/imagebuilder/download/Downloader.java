@@ -21,5 +21,5 @@ public abstract class Downloader {
     EnvUtils envUtils = new EnvUtils();
     RunUtils runUtils = new RunUtils();
     DownloadUtils downloadUtils = new DownloadUtils();
-    abstract public void downloadFiles(String version, String destination, boolean throwExceptionOnFailedDownload) throws DownloadFailedException;
+    abstract public void downloadFiles(String version, String destination, boolean throwExceptionOnFailedDownload, String scriptsPath) throws DownloadFailedException;
 }

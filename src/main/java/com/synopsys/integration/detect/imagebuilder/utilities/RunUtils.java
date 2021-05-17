@@ -24,20 +24,17 @@ import com.synopsys.integration.log.Slf4jIntLogger;
 
 public class RunUtils {
     private String shell = "bash";
-    private String resourceScriptsFolder = "scripts";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private EnvUtils envUtils = new EnvUtils();
 
-    public void runScript(String scriptName, Map<String, String> args) {
-        String pathToDownloadScript = envUtils.getResourcePath(String.format("%s/%s", resourceScriptsFolder, scriptName));
-        if (pathToDownloadScript == null) {
+    public void runScript(String pathToScript, Map<String, String> args) {
+        if (pathToScript == null) {
             return;
         }
 
         List<String> command = new LinkedList<>();
         command.add(shell);
-        command.add(pathToDownloadScript);
+        command.add(pathToScript);
         for (Map.Entry<String, String> keyValue : args.entrySet()) {
             command.add(keyValue.getKey());
             command.add(keyValue.getValue());
@@ -48,11 +45,6 @@ public class RunUtils {
             ProcessBuilderRunner pbr = new ProcessBuilderRunner(intLogger);
             ProcessBuilder pb = new ProcessBuilder();
 
-            //TODO- delete
-            command = command.stream()
-                          .map(arg -> arg.replace("OneDrive - Synopsys, Inc/", ""))
-                          .collect(Collectors.toList());
-
             pb.command(command);
 
             ExecutableOutput output = pbr.execute(pb);
@@ -61,7 +53,7 @@ public class RunUtils {
                 logger.warn(String.format("Error output from command %s: %s", command.toString(), output.getErrorOutput()));
             }
         } catch (ExecutableRunnerException e) {
-            logger.warn(String.format("Execution of script %s failed.", pathToDownloadScript));
+            logger.warn(String.format("Execution of script %s failed.", pathToScript));
         }
     }
 }

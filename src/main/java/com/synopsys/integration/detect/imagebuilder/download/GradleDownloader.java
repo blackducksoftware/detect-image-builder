@@ -16,10 +16,10 @@ public class GradleDownloader extends Downloader {
     private String gradleDownloadScriptName = "download-gradle.sh";
 
     @Override
-    public void downloadFiles(String version, String gradleFilesDir, boolean throwExceptionOnFailedDownload) throws DownloadFailedException {
+    public void downloadFiles(String version, String gradleFilesDir, boolean throwExceptionOnFailedDownload, String scriptsPath) throws DownloadFailedException {
         Map<String, String> scriptArgs = new HashMap<>();
         scriptArgs.put("-v", version);
         scriptArgs.put("-d", gradleFilesDir);
-        downloadUtils.downloadPkgMgrFiles("gradle", version, gradleFilesDir, throwExceptionOnFailedDownload, gradleDownloadScriptName, scriptArgs);
+        downloadUtils.downloadPkgMgrFiles("gradle", version, gradleFilesDir, throwExceptionOnFailedDownload, gradleDownloadScriptName, scriptArgs, scriptsPath);
     }
 }

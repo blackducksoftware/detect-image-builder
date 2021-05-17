@@ -19,7 +19,7 @@ public class DownloadUtils {
     private Logger logger = LoggerFactory.getLogger(getClass());
     private RunUtils runUtils = new RunUtils();
 
-    public void downloadPkgMgrFiles(String pkgMgrName, String pkgMgrVersion, String downloadDir, boolean throwExceptionOnFailedDownload, String downloadScriptName, Map<String, String> scriptArgs) throws DownloadFailedException {
+    public void downloadPkgMgrFiles(String pkgMgrName, String pkgMgrVersion, String downloadDir, boolean throwExceptionOnFailedDownload, String downloadScriptName, Map<String, String> scriptArgs, String scriptsPath) throws DownloadFailedException {
         logger.debug(String.format("Looking for %s %s in %s", pkgMgrName, pkgMgrVersion, downloadDir));
         if (pkgMgrVersionFilesArePresent(downloadDir, pkgMgrName, pkgMgrVersion)) {
             // If package manager files we want are already present, don't download
@@ -27,7 +27,7 @@ public class DownloadUtils {
             return;
         }
 
-        runUtils.runScript(downloadScriptName, scriptArgs);
+        runUtils.runScript(String.format("%s/%s", scriptsPath, downloadScriptName), scriptArgs);
 
         if (pkgMgrVersionFilesArePresent(downloadDir, pkgMgrName, pkgMgrVersion)) {
             logger.debug(String.format("Download of %s %s was successful.", pkgMgrName, pkgMgrVersion));

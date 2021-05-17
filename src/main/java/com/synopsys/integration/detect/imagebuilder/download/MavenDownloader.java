@@ -16,10 +16,10 @@ public class MavenDownloader extends Downloader {
     private String mavenDownloadScriptName = "download-maven.sh";
 
     @Override
-    public void downloadFiles(String version, String mavenFilesDir, boolean throwExceptionOnFailedDownload) throws DownloadFailedException {
+    public void downloadFiles(String version, String mavenFilesDir, boolean throwExceptionOnFailedDownload, String scriptsPath) throws DownloadFailedException {
         Map<String, String> scriptArgs = new HashMap<>();
         scriptArgs.put("-v", version);
         scriptArgs.put("-d", mavenFilesDir);
-        downloadUtils.downloadPkgMgrFiles("maven", version, mavenFilesDir, throwExceptionOnFailedDownload, mavenDownloadScriptName, scriptArgs);
+        downloadUtils.downloadPkgMgrFiles("maven", version, mavenFilesDir, throwExceptionOnFailedDownload, mavenDownloadScriptName, scriptArgs, scriptsPath);
     }
 }

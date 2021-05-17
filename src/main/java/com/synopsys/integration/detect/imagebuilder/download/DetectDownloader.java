@@ -21,13 +21,13 @@ public class DetectDownloader extends Downloader {
     private Pattern jarNamePattern = Pattern.compile("synopsys-detect-.*\\.jar");
 
     @Override
-    public void downloadFiles(String version, String detectFilesDirPath, boolean throwExceptionOnFailedDownload) throws DownloadFailedException {
+    public void downloadFiles(String version, String detectFilesDirPath, boolean throwExceptionOnFailedDownload, String scriptsPath) throws DownloadFailedException {
         Map<String, String> scriptAgrs = new HashMap<>();
         scriptAgrs.put("-v", version);
         scriptAgrs.put("-u", detectScriptDownloadUrl);
         scriptAgrs.put("-d", detectFilesDirPath);
 
-        runUtils.runScript(scriptName, scriptAgrs);
+        runUtils.runScript(String.format("%s/%s", scriptsPath, scriptName), scriptAgrs);
 
         // Look for jar
         File detectFilesDir = new File(detectFilesDirPath);
