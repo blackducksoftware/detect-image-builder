@@ -8,9 +8,14 @@
 package com.synopsys.integration.detect.imagebuilder;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+
+import org.apache.commons.io.FileUtils;
 
 import com.synopsys.integration.detect.imagebuilder.download.DetectDownloader;
 import com.synopsys.integration.detect.imagebuilder.utilities.EnvUtils;
@@ -31,7 +36,6 @@ public class ImageBuilder {
     private static String BUILD_IMAGES_SCRIPT_NAME = "build-images.sh";
     private static String IMAGE_REPO = "blackducksoftware";
     private static String CLEANUP_RESOURCE_FILES = envUtils.getEnv("CLEANUP_RESOURCE_FILES", "TRUE");
-    private static String CLEANUP_SCRIPT_NAME = "cleanup.sh";
 
     public static void main(String[] args) throws Exception {
         Supported supported = new Supported();
@@ -76,21 +80,13 @@ public class ImageBuilder {
                         // TODO- Push image to internal artifactory
                         // TODO- what about signing images (only an issue externally)?
                         //      publish to public-facing Artifactory as well as Docker Hub --> collab w/ releng team to handle builds that sign/deploy built images
-
-                        // Cleanup Detect jar, package manager files
-                        if (CLEANUP_RESOURCE_FILES.equalsIgnoreCase("TRUE")) {
-                            Map<String, String> cleanupArgs = new HashMap<>();
-                            cleanupArgs.put("-d", DETECT_FILES_PATH);
-                            cleanupArgs.put("-j", downLoadedDetectJarName);
-                            cleanupArgs.put("-n", PKG_MGR_FILES_DIR_NAME);
-                            cleanupArgs.put("-p", PKG_MGR_FILES_PATH);
-
-                            String pathToCleanupScript = String.format("%s/%s", SCRIPTS_PATH, CLEANUP_SCRIPT_NAME);
-                            //runUtils.runScript(pathToCleanupScript, cleanupArgs);
-                        }
                     }
                 }
             }
+        }
+        // Cleanup Detect jar, package manager files
+        if (CLEANUP_RESOURCE_FILES.equalsIgnoreCase("TRUE")) {
+            cleanup();
         }
 
     }
@@ -125,5 +121,22 @@ public class ImageBuilder {
         } else {
             return String.format("%s%s-%s-java-%s", prefix, pkgMgrName, pkgMgrVersion, javaVersion);
         }
+    }
+
+    private static void cleanup() throws IOException {
+        // Delete Detect jars
+        File detectFilesDir = new File(DETECT_FILES_PATH);
+        List<String> detectFilesNotToDelete = Arrays.asList("run-detect.sh");
+        if (detectFilesDir.isDirectory() || detectFilesDir.listFiles() != null && detectFilesDir.listFiles().length != 0) {
+            for (File file : detectFilesDir.listFiles()) {
+                if (!detectFilesNotToDelete.contains(file.getName())) {
+                    file.delete();
+                }
+            }
+        }
+
+        // Delete Package Manager files (but not directory itself)
+        File pkgMgrFilesDir = new File(PKG_MGR_FILES_PATH);
+        FileUtils.cleanDirectory(pkgMgrFilesDir);
     }
 }
