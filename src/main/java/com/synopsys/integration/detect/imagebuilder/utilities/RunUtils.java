@@ -7,12 +7,9 @@
  */
 package com.synopsys.integration.detect.imagebuilder.utilities;
 
-import java.io.File;
-import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
