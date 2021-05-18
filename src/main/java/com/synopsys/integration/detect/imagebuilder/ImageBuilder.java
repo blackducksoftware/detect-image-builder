@@ -62,6 +62,8 @@ public class ImageBuilder {
                             pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false, SCRIPTS_PATH);
                         }
 
+                        //TODO- check to see if image of same name already exists, needs to be re-built?
+
                         // Build image
                         Map<String, String> buildArgs = new HashMap<>();
                         buildArgs.put("-d", DOCKERFILES_PATH);
