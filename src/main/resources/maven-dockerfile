@@ -1,0 +1,34 @@
+FROM alpine:latest
+
+# Update, get bash
+RUN apk update && apk add bash
+
+ARG DETECT_FILES_DIR
+ARG DETECT_JAR_NAME
+
+# Copy in Detect files
+ADD ${DETECT_FILES_DIR} /detect/
+
+# Make it easy to call jar without knowing version
+RUN ln -s /detect/${DETECT_JAR_NAME} synopsys-detect.jar
+
+ARG JAVA_VERSION
+
+# Java
+RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
+
+ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
+
+# Download Maven files
+ARG PKG_MGR_VERSION
+
+RUN cd /usr/local \
+        && MAVEN_MAJOR_VERSION=${PKG_MGR_VERSION:0:1} \
+        && curl -L https://archive.apache.org/dist/maven/maven-${MAVEN_MAJOR_VERSION}/${PKG_MGR_VERSION}/binaries/apache-maven-${PKG_MGR_VERSION}-bin.tar.gz -o apache-maven-${PKG_MGR_VERSION}-bin.tar.gz \
+        && tar -xzf apache-maven-${PKG_MGR_VERSION}-bin.tar.gz --strip-components=1 \
+        && rm -f apache-maven-${PKG_MGR_VERSION}-bin.tar.gz
+
+RUN mvn --version && java --version
+
+# Define Docker Image entrypoint
+ENTRYPOINT ["bash", "/detect/run-detect.sh"]

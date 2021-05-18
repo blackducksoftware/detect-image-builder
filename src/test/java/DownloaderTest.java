@@ -11,8 +11,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.synopsys.integration.detect.imagebuilder.DownloadFailedException;
 import com.synopsys.integration.detect.imagebuilder.download.DetectDownloader;
 import com.synopsys.integration.detect.imagebuilder.download.Downloader;
-import com.synopsys.integration.detect.imagebuilder.download.GradleDownloader;
-import com.synopsys.integration.detect.imagebuilder.download.MavenDownloader;
 
 class DownloaderTest {
     private String scriptsPath = "src/main/resources/scripts";

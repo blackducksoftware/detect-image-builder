@@ -57,18 +57,12 @@ public class ImageBuilder {
                         String imageName = String.format("%s/%s", IMAGE_REPO, imageTag);
                         String downloadDestination = String.format("%s/%s", PKG_MGR_FILES_PATH, pkgMgrName);
 
-                        // Download Package Manager files
-                        if (pkgMgr.hasDownloader()) {
-                            pkgMgr.downloadFiles(pkgMgrVersion, downloadDestination, false, SCRIPTS_PATH);
-                        }
-
                         // Build image
                         Map<String, String> buildArgs = new HashMap<>();
                         buildArgs.put("-d", DOCKERFILES_PATH);
                         buildArgs.put("-f", pkgMgr.getDockerfileName());
                         buildArgs.put("-p", String.format("%s/%s/%s/%s", PKG_MGR_FILES_DIR_NAME, pkgMgrName, pkgMgrVersion, pkgMgrName));
                         buildArgs.put("-n", pkgMgrName);
-                        buildArgs.put("-v", pkgMgr.getVersionCmd());
                         buildArgs.put("-i", imageName);
                         buildArgs.put("-e", DETECT_FILES_DIR_NAME);
                         buildArgs.put("-o", downLoadedDetectJarName);
@@ -84,7 +78,7 @@ public class ImageBuilder {
                 }
             }
         }
-        // Cleanup Detect jar, package manager files
+        // Cleanup downloaded Detect files, package manager files
         if (CLEANUP_RESOURCE_FILES.equalsIgnoreCase("TRUE")) {
             cleanup();
         }

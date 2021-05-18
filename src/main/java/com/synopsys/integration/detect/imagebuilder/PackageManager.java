@@ -9,23 +9,18 @@ package com.synopsys.integration.detect.imagebuilder;
 
 import java.util.List;
 
-import com.synopsys.integration.detect.imagebuilder.download.Downloader;
 
 public class PackageManager {
     private String name;
     private List<String> versions;
-    private String versionCmd;
     private String dockerfileName;
-    private Downloader downloader;
     private List<String> detectVersions;
     private List<String> javaVersions;
 
-    public PackageManager(String name, List<String> versions, String versionCmd, String dockerfileName, Downloader downloader, List<String> detectVersions, List<String> javaVersions) {
+    public PackageManager(String name, List<String> versions,String dockerfileName, List<String> detectVersions, List<String> javaVersions) {
         this.name = name;
         this.versions = versions;
-        this.versionCmd = versionCmd;
         this.dockerfileName = dockerfileName;
-        this.downloader = downloader;
         this.detectVersions = detectVersions;
         this.javaVersions = javaVersions;
     }
@@ -38,21 +33,10 @@ public class PackageManager {
         return versions;
     }
 
-    public String getVersionCmd() {
-        return versionCmd;
-    }
-
     public String getDockerfileName() {
         return dockerfileName;
     }
 
-    public boolean hasDownloader() {
-        return downloader != null;
-    }
-
-    public void downloadFiles(String version, String destination, boolean throwExceptionOnFailedDownload, String scriptsPath) throws Exception {
-        downloader.downloadFiles(version, destination, throwExceptionOnFailedDownload, scriptsPath);
-    }
 
     public List<String> getDetectVersions() {
         return detectVersions;

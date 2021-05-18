@@ -12,13 +12,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.synopsys.integration.detect.imagebuilder.download.GradleDownloader;
-import com.synopsys.integration.detect.imagebuilder.download.MavenDownloader;
-
 // This class specifies the versions of Detect, Java, and of various package managers that this image builder supports
 
 class Supported {
-    private String commonDockerfile = "common-dockerfile";
     private List<PackageManager> supported;
 
     private List<String> detectVersions = Arrays.asList("latest"); // default Detect version list
@@ -33,8 +29,7 @@ class Supported {
             "gradle",
             gradleVersions,
             "gradle --version",
-            commonDockerfile,
-            new GradleDownloader(),
+            "gradle-dockerfile",
             detectVersions,
             javaVersions
             ));
@@ -42,17 +37,15 @@ class Supported {
             "maven",
             mavenVersions,
             "mvn --version",
-            commonDockerfile,
-            new MavenDownloader(),
+            "maven-dockerfile",
             detectVersions,
             javaVersions
         ));
         supported.add(new PackageManager(
             "npm",
             Collections.singletonList(""), // currently installing node via apk which only supports latest
-            "node --version && npm --version",
+            null, // command is hard-coded
             "npm-dockerfile",
-            null,
             detectVersions,
             javaVersions
         ));

@@ -1,21 +1,10 @@
 FROM alpine:latest
 
-ARG DETECT_FILES_DIR
-ARG DETECT_JAR_NAME
-
-ARG PKG_MGR_FILES_DIR
-ARG PKG_MGR_VERSION_CMD
-
-ARG JAVA_VERSION
-
 # Update, get bash
 RUN apk update && apk add bash
 
-# Java
-RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
-
-ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
-
+ARG DETECT_FILES_DIR
+ARG DETECT_JAR_NAME
 
 # Copy in Detect files
 ADD ${DETECT_FILES_DIR} /detect/
@@ -23,10 +12,17 @@ ADD ${DETECT_FILES_DIR} /detect/
 # Make it easy to call jar without knowing version
 RUN ln -s /detect/${DETECT_JAR_NAME} synopsys-detect.jar
 
+ARG JAVA_VERSION
+
+# Java
+RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
+
+ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
+
 # npm
 RUN apk add npm
 
-RUN ${PKG_MGR_VERSION_CMD} && java --version
+RUN node --version && npm --version && java --version
 
 # Define Docker Image entrypoint
 ENTRYPOINT ["bash", "/detect/run-detect.sh"]
