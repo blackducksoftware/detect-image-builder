@@ -21,3 +21,6 @@ COPY ${DETECT_FILES_DIR}/${RUN_DETECT_SCRIPT} /detect/
 
 # Make it easy to call jar without knowing version
 RUN ln -s /detect/${DETECT_JAR_NAME} synopsys-detect.jar
+
+# Define Docker Image entrypoint
+ENTRYPOINT ["bash", "/detect/run-detect.sh"]

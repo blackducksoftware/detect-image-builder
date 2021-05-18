@@ -15,7 +15,7 @@ import java.util.List;
 // This class specifies the versions of Detect, Java, and of various package managers that this image builder supports
 
 class Supported {
-    private List<PackageManager> supported;
+    private List<PackageManager> supportedPkgMgrs;
 
     private List<String> detectVersions = Arrays.asList("latest"); // default Detect version list
     private List<String> javaVersions = Arrays.asList("11"); // default Java version list
@@ -24,34 +24,39 @@ class Supported {
 
 
     Supported() {
-        supported = new ArrayList<>();
-        supported.add(new PackageManager(
+        supportedPkgMgrs = new ArrayList<>();
+        supportedPkgMgrs.add(new PackageManager(
             "gradle",
             gradleVersions,
-            "gradle --version",
             "gradle-dockerfile",
             detectVersions,
             javaVersions
             ));
-        supported.add(new PackageManager(
+        supportedPkgMgrs.add(new PackageManager(
             "maven",
             mavenVersions,
-            "mvn --version",
             "maven-dockerfile",
             detectVersions,
             javaVersions
         ));
-        supported.add(new PackageManager(
+        supportedPkgMgrs.add(new PackageManager(
             "npm",
             Collections.singletonList(""), // currently installing node via apk which only supports latest
-            null, // command is hard-coded
             "npm-dockerfile",
             detectVersions,
             javaVersions
         ));
     }
 
-    List<PackageManager> getSupported() {
-        return supported;
+    public List<String> getSupportedDetectVersions() {
+        return detectVersions;
+    }
+
+    public List<String> getSupportedJavaVersions() {
+        return javaVersions;
+    }
+
+    List<PackageManager> getSupportedPackageManagers() {
+        return supportedPkgMgrs;
     }
 }

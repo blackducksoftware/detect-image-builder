@@ -1,23 +1,12 @@
-FROM alpine:latest
-
-# Update, get bash
-RUN apk update && apk add bash
-
-ARG DETECT_FILES_DIR
-ARG DETECT_JAR_NAME
-
-# Copy in Detect files
-ADD ${DETECT_FILES_DIR} /detect/
-
-# Make it easy to call jar without knowing version
-RUN ln -s /detect/${DETECT_JAR_NAME} synopsys-detect.jar
-
+ARG ORG
+ARG DETECT_VERSION
 ARG JAVA_VERSION
+ARG BASE_IMAGE_VERSION
 
-# Java
-RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
+FROM ${ORG}/detect-${DETECT_VERSION}-java-${JAVA_VERSION}:${BASE_VERSION}
 
-ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
+# Update, get utilities
+RUN apk update && apk add bash
 
 # npm
 RUN apk add npm

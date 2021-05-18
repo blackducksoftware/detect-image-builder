@@ -21,8 +21,6 @@ done
 cd ${dockerfilePath} && \
     docker rmi -f ${imageName} && \
     docker build \
-    --build-arg "PKG_MGR_FILES_DIR=${pkgMgrFilesPath}" \
-    --build-arg "PKG_MGR_VERSION_CMD=${pkgMgrVersionCmd}" \
     --build-arg "DETECT_FILES_DIR=${detectFilesPath}" \
     --build-arg "DETECT_JAR_NAME=${detectJarName}" \
     --build-arg "JAVA_VERSION=${javaVersion}" \
