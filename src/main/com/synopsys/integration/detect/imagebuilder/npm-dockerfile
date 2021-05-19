@@ -1,0 +1,15 @@
+ARG ORG
+ARG DETECT_VERSION
+
+FROM ${ORG}/detect:${DETECT_VERSION}
+
+# Update, get utilities
+RUN apk update && apk add bash
+
+# npm
+RUN apk add npm
+
+RUN node --version && npm --version && java --version
+
+# Define Docker Image entrypoint
+ENTRYPOINT ["bash", "/detect/run-detect.sh"]
