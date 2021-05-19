@@ -1,9 +1,7 @@
 ARG ORG
 ARG DETECT_VERSION
-ARG JAVA_VERSION
-ARG BASE_IMAGE_VERSION
 
-FROM ${ORG}/detect-${DETECT_VERSION}-java-${JAVA_VERSION}:${BASE_IMAGE_VERSION}
+FROM ${ORG}/detect:${DETECT_VERSION}
 
 # Update, get utils
 RUN apk update && apk add bash && apk add curl && apk add unzip && apk add rsync
