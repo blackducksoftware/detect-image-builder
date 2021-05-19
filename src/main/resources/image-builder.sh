@@ -1,9 +1,9 @@
 #!/bin/bash
 
-BUILD_PKG_MGR_IMAGES_SCRIPT_NAME=build-pkg-mgr-images.sh;
+VERSION=1.0
+
 RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
-# IMAGE_ORG=blackducksoftware; #TODO- un-comment
-IMAGE_ORG=alexcrowley14; # TODO- delete
+IMAGE_ORG=blackducksoftware
 
 # Java Version to support
 JAVA_VERSION=11
@@ -16,11 +16,11 @@ DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
 # NOTE: When supplying arguments to this function, ORDER MATTERS.
 #   If a package manager doesn't require one of the args (ex. npm doesn't specify a PKG_MGR_VERSION since we're only using the version alpine supports) provide an empty string in its place
 function buildPkgMgrImage() {
-    IMAGE_NAME=$1
-    ORG=$2
-    DETECT_VERSION=$3
-    PKG_MGR_VERSION=$4
-    DOCKERFILE_NAME=$5
+    local IMAGE_NAME=$1
+    local ORG=$2
+    local DETECT_VERSION=$3
+    local PKG_MGR_VERSION=$4
+    local DOCKERFILE_NAME=$5
 
     docker rmi -f ${IMAGE_NAME} \
     && docker build \
@@ -32,6 +32,19 @@ function buildPkgMgrImage() {
     .
 }
 
+function pushImage() {
+    # Stop execution on an error
+    set -e
+
+    local IMAGE_NAME=$1
+    # Login info is sourced from the build environment
+    docker login --username ${DOCKER_INT_BLACKDUCK_USER} --password ${DOCKER_INT_BLACKDUCK_PASSWORD}
+    docker push ${IMAGE_NAME}
+    docker logout
+
+    set +e
+}
+
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
         # Build Detect Base Image
@@ -41,8 +54,8 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
             -t ${IMAGE_NAME} \
             -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
             .
-    # TODO- push image (this has to be done before any of the other images are built
-    docker push ${IMAGE_NAME} # for now, push to local repo
+
+    pushImage ${IMAGE_NAME}
 
     # Build Package Manager Images
 
@@ -53,7 +66,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         do
             IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-gradle-${gradleVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} ${gradleVersion} ${GRADLE_DOCKERFILE}
-            # TODO- push image
+            pushImage ${IMAGE_NAME}
     done
 
     # Maven
@@ -63,15 +76,13 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         do
             IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-maven-${mavenVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} ${mavenVersion} ${MAVEN_DOCKERFILE}
-            #TODO- push image
+            pushImage ${IMAGE_NAME}
     done
 
     # Npm
     NPM_DOCKERFILE=npm-dockerfile
     IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-npm
     buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} "" ${NPM_DOCKERFILE}
-    # TODO- push image
-
-
+    pushImage ${IMAGE_NAME}
 
 done
