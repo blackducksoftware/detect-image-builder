@@ -1,31 +1,13 @@
 buildscript {
-    ext {
-        springBootVersion = '2.4.3'
-    }
     apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-repositories.gradle', to: buildscript
     apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-dependencies.gradle', to: buildscript
-
-    dependencies {
-        classpath "org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}"
-    }
 }
 
-plugins {
-    id 'java'
-}
-
-version '1.0-SNAPSHOT'
+version '1.0.0-SNAPSHOT'
 
 apply plugin: 'com.synopsys.integration.solution'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
 
-dependencies {
-    implementation 'com.synopsys.integration:integration-common:24.3.0'
-    implementation 'org.slf4j:slf4j-api:1.7.30'
-    implementation 'org.slf4j:slf4j-log4j12:1.7.30'
-    implementation 'org.springframework.boot:spring-boot'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.2'
-}
-
-springBoot { mainClass = 'com.synopsys.integration.detect.imagebuilder.ImageBuilder' }
+def options = ['name': 'dockerImages', 'type': Exec, 'group': 'Docker', 'description': 'Compile and publish Docker images.']
+project.tasks.create(options, {
+		commandLine "src/main/com/synopsys/integration/detect/imagebuilder/image-builder.sh"
+})
