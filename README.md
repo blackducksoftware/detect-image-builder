@@ -8,6 +8,8 @@ To configure supported package manager versions and Detect versions, edit image-
 
 To enable pushing of images to Docker Hub, set environment variables DOCKER_INT_BLACKDUCK_USER and DOCKER_INT_BLACKDUCK_PASSWORD.
 
+To push release images, set environment variable DETECT_IMAGE_RELEASE_BUILD=TRUE.  Otherwise, images will be tagged with "-SNAPSHOT" suffix.
+
 To run:
 ```bash
     bash image-builder.sh

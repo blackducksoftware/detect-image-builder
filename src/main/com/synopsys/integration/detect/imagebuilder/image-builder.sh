@@ -1,18 +1,29 @@
 #!/bin/bash
 
+### Config
+
 # If a variable is unset, stop and exit
 set -u
 
 # cd to same directory that script is in
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
+RELEASE_BUILD=${DETECT_IMAGE_RELEASE_BUILD:-FALSE}
+
 RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
+
 IMAGE_ORG=blackducksoftware
 
-# Detect Versions to support
+DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
+
+# Versions to support
 DETECT_VERSIONS=( 7.0.0 6.9.1 )
 
-DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
+GRADLE_VERSIONS=( 6.8.2 )
+
+MAVEN_VERSIONS=( 3.8.1 )
+
+### Functions
 
 # NOTE: When supplying arguments to this function, ORDER MATTERS.
 #   If a package manager doesn't require one of the args (ex. npm doesn't specify a PKG_MGR_VERSION since we're only using the version alpine supports) provide an empty string in its place
@@ -61,10 +72,23 @@ function pushImage() {
     set +e
 }
 
+# This function will set global variable IMAGE_NAME
+function addSnapshotToImageNameIfNotRelease() {
+    local ORIGINAL_IMAGE_NAME=$1
+
+    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
+        IMAGE_NAME=${ORIGINAL_IMAGE_NAME}
+    else
+        IMAGE_NAME=${ORIGINAL_IMAGE_NAME}-SNAPSHOT
+    fi
+}
+
+### Build and Push Images
+
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
     # Build Detect Base Image
-    IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}
+    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${detectVersion}
     removeImage ${IMAGE_NAME}
     logAndRun docker build \
         --build-arg "DETECT_VERSION=${detectVersion}" \
@@ -76,30 +100,35 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
 
     # Build Package Manager Images
 
+    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
+        DETECT_VERSION=${detectVersion}
+    else
+        DETECT_VERSION=${detectVersion}-SNAPSHOT
+    fi
+    # Now DETECT_VERSION is most updated version
+
     # Gradle
-    GRADLE_VERSIONS=( 6.8.2 )
     GRADLE_DOCKERFILE=gradle-dockerfile
     for gradleVersion in "${GRADLE_VERSIONS[@]}";
         do
-            IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-gradle-${gradleVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} ${GRADLE_DOCKERFILE} ${gradleVersion}
+            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
+            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
             pushImage ${IMAGE_NAME}
     done
 
     # Maven
-    MAVEN_VERSIONS=( 3.8.1 )
     MAVEN_DOCKERFILE=maven-dockerfile
     for mavenVersion in "${MAVEN_VERSIONS[@]}";
         do
-            IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-maven-${mavenVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} ${MAVEN_DOCKERFILE} ${mavenVersion}
+            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-maven-${mavenVersion}
+            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${MAVEN_DOCKERFILE} ${mavenVersion}
             pushImage ${IMAGE_NAME}
     done
 
     # Npm
     NPM_DOCKERFILE=npm-dockerfile
-    IMAGE_NAME=${IMAGE_ORG}/detect:${detectVersion}-npm
-    buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${detectVersion} ${NPM_DOCKERFILE}
+    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm
+    buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE}
     pushImage ${IMAGE_NAME}
 
 done
