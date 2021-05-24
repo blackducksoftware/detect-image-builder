@@ -64,9 +64,9 @@ function pushImage() {
 
     local IMAGE_NAME=$1
     # Login info is sourced from the build environment
-    echo docker login --username ${DOCKER_INT_BLACKDUCK_USER} --password ${DOCKER_INT_BLACKDUCK_PASSWORD}
-    echo docker push ${IMAGE_NAME}
-    echo docker logout
+    docker login --username ${DOCKER_INT_BLACKDUCK_USER} --password ${DOCKER_INT_BLACKDUCK_PASSWORD}
+    docker push ${IMAGE_NAME}
+    docker logout
     echo "Image ${IMAGE_NAME} successfully published"
 
     set +e
