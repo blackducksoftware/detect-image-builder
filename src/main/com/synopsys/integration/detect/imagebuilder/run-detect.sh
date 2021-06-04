@@ -5,6 +5,7 @@
 DETECT_JAR=synopsys-detect.jar
 
 SOURCE_DIR=source
+OUTPUT_DIR=output
 
 DISPLAY_HELP=false
 
@@ -32,7 +33,7 @@ if [[ ${DISPLAY_HELP} == "true" ]]
 then
     CMD="java -jar /${DETECT_JAR} -hv"
 else
-    CMD="java -jar /${DETECT_JAR} --detect.source.path=/${SOURCE_DIR} ${ARGS}"
+    CMD="java -jar /${DETECT_JAR} --detect.source.path=/${SOURCE_DIR} --detect.output.path=/${OUTPUT_DIR} ${ARGS}"
 fi
 
 echo "Running ${CMD}"
