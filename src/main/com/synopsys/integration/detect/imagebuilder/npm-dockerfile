@@ -7,7 +7,9 @@ FROM ${ORG}/detect:${DETECT_VERSION}
 RUN apk update && apk add bash
 
 # npm
-RUN apk add npm
+ARG PKG_MGR_VERSION
+
+RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/latest-stable/main/ npm=${PKG_MGR_VERSION}
 
 RUN node --version && npm --version && java --version
 

@@ -23,6 +23,10 @@ GRADLE_VERSIONS=( 6.8.2 )
 
 MAVEN_VERSIONS=( 3.8.1 )
 
+NODE_VERSIONS=( 14.16.1-r1 ) # Need to specify npm by node version when getting from Alpine apk, so we will maintain a map of node versions to npm versions
+declare -A NODE_TO_NPM_VERSIONS
+NODE_TO_NPM_VERSIONS[14.16.1-r1]=6.14.12
+
 ### Functions
 
 # NOTE: When supplying arguments to this function, ORDER MATTERS.
@@ -127,8 +131,12 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
 
     # Npm
     NPM_DOCKERFILE=npm-dockerfile
-    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm
-    buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE}
-    pushImage ${IMAGE_NAME}
+    for nodeVersion in "${NODE_VERSIONS[@]}";
+        do
+            NPM_VERSION=${NODE_TO_NPM_VERSIONS[${nodeVersion}]}
+            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm-${NPM_VERSION}
+            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE} ${nodeVersion}
+            pushImage ${IMAGE_NAME}
+    done
 
 done
