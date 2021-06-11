@@ -12,7 +12,7 @@ RELEASE_BUILD=${DETECT_IMAGE_RELEASE_BUILD:-FALSE}
 
 RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
 
-IMAGE_ORG=blackducksoftware
+ORG=blackducksoftware
 
 DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
 
@@ -92,7 +92,7 @@ function addSnapshotToImageNameIfNotRelease() {
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
     # Build Detect Base Image
-    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${detectVersion}
+    addSnapshotToImageNameIfNotRelease ${ORG}/detect:${detectVersion}
     removeImage ${IMAGE_NAME}
     logAndRun docker build \
         --build-arg "DETECT_VERSION=${detectVersion}" \
@@ -115,8 +115,8 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     GRADLE_DOCKERFILE=gradle-dockerfile
     for gradleVersion in "${GRADLE_VERSIONS[@]}";
         do
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
+            addSnapshotToImageNameIfNotRelease ${ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
+            buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
             pushImage ${IMAGE_NAME}
     done
 
@@ -124,8 +124,8 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     MAVEN_DOCKERFILE=maven-dockerfile
     for mavenVersion in "${MAVEN_VERSIONS[@]}";
         do
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-maven-${mavenVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${MAVEN_DOCKERFILE} ${mavenVersion}
+            addSnapshotToImageNameIfNotRelease ${ORG}/detect:${DETECT_VERSION}-maven-${mavenVersion}
+            buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${DETECT_VERSION} ${MAVEN_DOCKERFILE} ${mavenVersion}
             pushImage ${IMAGE_NAME}
     done
 
@@ -134,8 +134,20 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     for nodeVersion in "${NODE_VERSIONS[@]}";
         do
             NPM_VERSION=${NODE_TO_NPM_VERSIONS[${nodeVersion}]}
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm-${NPM_VERSION}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE} ${nodeVersion}
+            addSnapshotToImageNameIfNotRelease ${ORG}/detect:${DETECT_VERSION}-npm-${NPM_VERSION}
+
+            # Requires custom build args for npm, node versions
+            removeImage "${IMAGE_NAME}"
+
+            logAndRun docker build \
+                --build-arg "ORG=${ORG}" \
+                --build-arg "DETECT_VERSION=${DETECT_VERSION}" \
+                --build-arg "NODE_VERSION=${nodeVersion}" \
+                --build-arg "NPM_VERSION=${NPM_VERSION}" \
+                -t ${IMAGE_NAME} \
+                -f ${NPM_DOCKERFILE} \
+                .
+
             pushImage ${IMAGE_NAME}
     done
 

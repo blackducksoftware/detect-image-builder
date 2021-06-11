@@ -7,11 +7,13 @@ FROM ${ORG}/detect:${DETECT_VERSION}
 RUN apk update && apk add bash
 
 # npm
-ARG PKG_MGR_VERSION
+ARG NODE_VERSION
+ARG NPM_VERSION
 
-RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/latest-stable/main/ npm=${PKG_MGR_VERSION}
+RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/latest-stable/main/ npm=${NODE_VERSION}
 
-RUN node --version && npm --version && java --version
+RUN if [ $(npm --version) != ${NPM_VERSION} ]; then echo "Failed to install ${NPM_VERSION}" && exit -1 ; fi \
+    && node --version && java --version
 
 # Define Docker Image entrypoint
 ENTRYPOINT ["bash", "/detect/run-detect.sh"]
