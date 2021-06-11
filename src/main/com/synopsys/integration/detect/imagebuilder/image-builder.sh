@@ -16,11 +16,21 @@ IMAGE_ORG=blackducksoftware
 
 DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
 
-# Versions to support
+## Versions to support
+
+# This constant will serve as default when accessing a "latest compatible version map" (it should be higher than the highest version of any supported package manager, Detect, etc
+readonly NO_LATEST_COMPATIBLE_VERSION=9999
+
+# Detect
 DETECT_VERSIONS=( 7.0.0 6.9.1 )
 
-GRADLE_VERSIONS=( 6.8.2 )
+# Gradle
+GRADLE_VERSIONS=( 6.8.2 6.7.1 )
 
+declare -A DETECT_LATEST_COMPATIBLE_GRADLE
+DETECT_LATEST_COMPATIBLE_GRADLE[6.9.1]=6.7.1
+
+# Maven
 MAVEN_VERSIONS=( 3.8.1 )
 
 ### Functions
@@ -111,9 +121,14 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     GRADLE_DOCKERFILE=gradle-dockerfile
     for gradleVersion in "${GRADLE_VERSIONS[@]}";
         do
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
-            pushImage ${IMAGE_NAME}
+            if [[ ! ${gradleVersion} > ${DETECT_LATEST_COMPATIBLE_GRADLE[${detectVersion}]-${NO_LATEST_COMPATIBLE_VERSION}} ]];
+            then
+                addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
+                buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
+                pushImage ${IMAGE_NAME}
+            else
+                echo "${gradleVersion} is > ${DETECT_LATEST_COMPATIBLE_GRADLE[${detectVersion}]-${NO_LATEST_COMPATIBLE_VERSION}}?"
+            fi
     done
 
     # Maven
