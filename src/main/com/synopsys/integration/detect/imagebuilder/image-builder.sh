@@ -52,24 +52,46 @@ function removeImage() {
 }
 
 function logAndRun() {
-  # shellcheck disable=SC2145
-  echo "[$(date)] Running command: $@"
-  # shellcheck disable=SC2068
-  $@
+    # shellcheck disable=SC2145
+    echo "[$(date)] Running command: $@"
+    # shellcheck disable=SC2068
+    $@
 }
 
 function pushImage() {
     # Stop execution on an error
     set -e
 
-    local IMAGE_NAME=$1
-    # Login info is sourced from the build environment
-    docker login --username ${DOCKER_INT_BLACKDUCK_USER} --password ${DOCKER_INT_BLACKDUCK_PASSWORD}
-    docker push ${IMAGE_NAME}
-    docker logout
-    echo "Image ${IMAGE_NAME} successfully published"
+    local RAW_IMAGE_NAME=$1
+    local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
+
+    # Login information comes from Jenkins OR from the build server run environment
+
+    # Publish internal
+    echo docker tag ${RAW_IMAGE_NAME} ${INTERNAL_IMAGE_NAME}
+    publishImage ${INTERNAL_IMAGE_NAME} ${ARTIFACTORY_DEPLOYER_USER} ${ARTIFACTORY_DEPLOYER_PASSWORD} "https://${DOCKER_REGISTRY_SIG}/v2/"
+
+    # Publish external
+    publishImage ${RAW_IMAGE_NAME} ${DOCKER_INT_BLACKDUCK_USER} ${DOCKER_INT_BLACKDUCK_PASSWORD}
 
     set +e
+}
+
+function publishImage() {
+    if ! [[ $# =~ [3-4] ]]; then
+        echo "ERROR: Incorrect arguments passed to ${FUNCNAME[0]}"
+        exit 1
+    fi
+
+    local IMAGE_NAME=$1
+    local DOCKER_LOGIN=$2
+    local DOCKER_PASSWORD=$3
+    local DOCKER_REGISTRY=$4
+
+    echo docker login --username ${DOCKER_LOGIN} --password ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}
+    echo docker push ${IMAGE_NAME}
+    echo docker logout
+    echo "Image ${IMAGE_NAME} successfully published"
 }
 
 # This function will set global variable IMAGE_NAME
