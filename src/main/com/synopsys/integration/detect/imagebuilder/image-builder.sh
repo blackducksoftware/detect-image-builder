@@ -8,7 +8,7 @@ set -u
 # cd to same directory that script is in
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-RELEASE_BUILD=${DETECT_IMAGE_RELEASE_BUILD:-FALSE}
+RELEASE_BUILD=${RUN_RELEASE:-FALSE}
 
 RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
 
