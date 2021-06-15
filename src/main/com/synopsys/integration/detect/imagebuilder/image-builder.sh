@@ -35,6 +35,7 @@ function buildPkgMgrImage() {
     local PKG_MGR_VERSION=${5:-unused}
 
     removeImage "${IMAGE_NAME}"
+    removeImage "$(getInternalImageName "${IMAGE_NAME}")"
 
     logAndRun docker build \
         --build-arg "ORG=${ORG}" \
@@ -45,10 +46,14 @@ function buildPkgMgrImage() {
         .
 }
 
+function getInternalImageName() {
+    echo "${DOCKER_REGISTRY_SIG}/$1"
+}
+
 function removeImage() {
     local IMAGE_NAME=$1
 
-    docker images -q "${IMAGE_NAME}" | xargs --verbose --no-run-if-empty docker rmi -f
+    test -n "$(docker images -q "${IMAGE_NAME}")" && docker rmi -f "${IMAGE_NAME}"
 }
 
 function logAndRun() {
@@ -58,39 +63,35 @@ function logAndRun() {
     $@
 }
 
-function pushImage() {
+function publishImage() {
     # Stop execution on an error
     set -e
 
     local RAW_IMAGE_NAME=$1
-    local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
+    local INTERNAL_IMAGE_NAME="$(getInternalImageName "${RAW_IMAGE_NAME}")"
 
     # Login information comes from Jenkins OR from the build server run environment
 
     # Publish internal
-    echo docker tag ${RAW_IMAGE_NAME} ${INTERNAL_IMAGE_NAME}
-    publishImage ${INTERNAL_IMAGE_NAME} ${ARTIFACTORY_DEPLOYER_USER} ${ARTIFACTORY_DEPLOYER_PASSWORD} "https://${DOCKER_REGISTRY_SIG}/v2/"
+    docker tag "${RAW_IMAGE_NAME}" "${INTERNAL_IMAGE_NAME}"
+    pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
+    removeImage "${INTERNAL_IMAGE_NAME}"
 
     # Publish external
-    publishImage ${RAW_IMAGE_NAME} ${DOCKER_INT_BLACKDUCK_USER} ${DOCKER_INT_BLACKDUCK_PASSWORD}
+    pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
 
     set +e
 }
 
-function publishImage() {
-    if ! [[ $# =~ [3-4] ]]; then
-        echo "ERROR: Incorrect arguments passed to ${FUNCNAME[0]}"
-        exit 1
-    fi
-
+function pushImage() {
     local IMAGE_NAME=$1
     local DOCKER_LOGIN=$2
     local DOCKER_PASSWORD=$3
     local DOCKER_REGISTRY=$4
 
-    echo docker login --username ${DOCKER_LOGIN} --password ${DOCKER_PASSWORD} ${DOCKER_REGISTRY}
-    echo docker push ${IMAGE_NAME}
-    echo docker logout
+    docker login --username "${DOCKER_LOGIN}" --password "${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
+    docker push "${IMAGE_NAME}"
+    docker logout
     echo "Image ${IMAGE_NAME} successfully published"
 }
 
@@ -111,14 +112,17 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     do
     # Build Detect Base Image
     addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${detectVersion}
-    removeImage ${IMAGE_NAME}
+
+    removeImage "${IMAGE_NAME}"
+    removeImage "$(getInternalImageName "${IMAGE_NAME}")"
+
     logAndRun docker build \
         --build-arg "DETECT_VERSION=${detectVersion}" \
         -t ${IMAGE_NAME} \
         -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
         .
 
-    pushImage "${IMAGE_NAME}"
+    publishImage "${IMAGE_NAME}"
 
     # Build Package Manager Images
 
@@ -135,7 +139,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         do
             addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
-            pushImage ${IMAGE_NAME}
+            publishImage ${IMAGE_NAME}
     done
 
     # Maven
@@ -144,13 +148,13 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         do
             addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-maven-${mavenVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${MAVEN_DOCKERFILE} ${mavenVersion}
-            pushImage ${IMAGE_NAME}
+            publishImage ${IMAGE_NAME}
     done
 
     # Npm
     NPM_DOCKERFILE=npm-dockerfile
     addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm
     buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE}
-    pushImage ${IMAGE_NAME}
+    publishImage ${IMAGE_NAME}
 
 done
