@@ -1,12 +1,6 @@
-FROM alpine:latest
+ARG BASE_IMAGE
 
-# Update, get bash
-RUN apk update && apk add bash && apk add curl
-
-# Java
-RUN apk --no-cache add openjdk11-jre
-
-ENV BDS_JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+FROM ${BASE_IMAGE}
 
 # Copy in entrypoint script
 ARG RUN_DETECT_SCRIPT="run-detect.sh"

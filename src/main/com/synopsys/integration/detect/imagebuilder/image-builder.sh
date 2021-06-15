@@ -100,6 +100,16 @@ function addSnapshotToImageNameIfNotRelease() {
 
 ### Build and Push Images
 
+<< 'NEW_HIERARCHY'
+    alpine:3.13+java11 <-- do we want to have different java's be another level?
+           |            |
+        pkgmgr      detect-slim
+           |
+           detect-customer
+
+
+NEW_HIERARCHY
+
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
     # Build Detect Base Image

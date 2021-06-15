@@ -1,10 +1,9 @@
 ARG ORG
-ARG DETECT_VERSION
 
-FROM ${ORG}/detect:${DETECT_VERSION}
+FROM ${ORG}/integrations-base
 
 # Update, get utils
-RUN apk update && apk add bash && apk add curl && apk add unzip && apk add rsync
+RUN apk add curl && apk add unzip && apk add rsync
 
 # Download Gradle files
 ARG PKG_MGR_VERSION
@@ -18,7 +17,4 @@ RUN cd /usr/local \
        && rm gradle-${PKG_MGR_VERSION}-bin.zip \
        && rm -r gradle-${PKG_MGR_VERSION}
 
-RUN gradle --version && java --version
-
-# Define Docker Image entrypoint
-ENTRYPOINT ["bash", "/detect/run-detect.sh"]
+RUN gradle --version

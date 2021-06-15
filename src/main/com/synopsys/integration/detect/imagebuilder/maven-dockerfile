@@ -1,7 +1,7 @@
 ARG ORG
 ARG DETECT_VERSION
 
-FROM ${ORG}/detect:${DETECT_VERSION}
+FROM ${ORG}/integrations-base
 
 # Update, get utilities
 RUN apk update && apk add bash && apk add curl && apk add tar
@@ -15,7 +15,4 @@ RUN cd /usr/local \
         && tar -xzf apache-maven-${PKG_MGR_VERSION}-bin.tar.gz --strip-components=1 \
         && rm -f apache-maven-${PKG_MGR_VERSION}-bin.tar.gz
 
-RUN mvn --version && java --version
-
-# Define Docker Image entrypoint
-ENTRYPOINT ["bash", "/detect/run-detect.sh"]
+RUN mvn --version
