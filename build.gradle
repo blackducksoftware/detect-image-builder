@@ -3,11 +3,15 @@ buildscript {
     apply from: 'https://raw.githubusercontent.com/blackducksoftware/integration-resources/master/gradle_common/buildscript-dependencies.gradle', to: buildscript
 }
 
+ext {
+	runRelease = System.properties['RUN_RELEASE'] ?: false
+}
+
 version '1.0.0-SNAPSHOT'
 
 apply plugin: 'com.synopsys.integration.solution'
 
 def options = ['name': 'dockerImages', 'type': Exec, 'group': 'Docker', 'description': 'Compile and publish Docker images.']
 project.tasks.create(options, {
-		commandLine "src/main/com/synopsys/integration/detect/imagebuilder/image-builder.sh"
+		commandLine "src/main/com/synopsys/integration/detect/imagebuilder/image-builder.sh", "${runRelease}"
 })
