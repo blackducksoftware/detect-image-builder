@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 
 ### Config
 
@@ -108,13 +108,12 @@ function publishImage() {
 
     # Publish internal
     docker tag "${RAW_IMAGE_NAME}" "${INTERNAL_IMAGE_NAME}"
-    #pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
-    #removeImage "${INTERNAL_IMAGE_NAME}"
+    pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
+    removeImage "${INTERNAL_IMAGE_NAME}"
 
     # Publish external
     if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
-        #pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
-        echo "fake publish"
+        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
     fi
 
     set +e
@@ -126,9 +125,9 @@ function pushImage() {
     local DOCKER_PASSWORD=$3
     local DOCKER_REGISTRY=$4
 
-    #docker login --username "${DOCKER_LOGIN}" --password "${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
-    #docker push "${IMAGE_NAME}"
-    #docker logout
+    docker login --username "${DOCKER_LOGIN}" --password "${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
+    docker push "${IMAGE_NAME}"
+    docker logout
     echo "Image ${IMAGE_NAME} successfully published"
 }
 
@@ -149,7 +148,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
         .
 
-    #publishImage "${IMAGE_NAME}"
+    publishImage "${IMAGE_NAME}"
 
     # Build Package Manager Images
 
