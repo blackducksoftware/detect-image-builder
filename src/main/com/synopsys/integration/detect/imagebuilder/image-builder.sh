@@ -77,9 +77,11 @@ function publishImage() {
     pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
     removeImage "${INTERNAL_IMAGE_NAME}"
 
-    # Publish external
-    pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
-
+    if [[ ${RELEASE_BUILD} == "TRUE" ]];
+    then
+        # Publish external
+        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+    fi
     set +e
 }
 
@@ -95,24 +97,11 @@ function pushImage() {
     echo "Image ${IMAGE_NAME} successfully published"
 }
 
-# This function will set global variable IMAGE_NAME
-function addSnapshotToImageNameIfNotRelease() {
-    local ORIGINAL_IMAGE_NAME=$1
-
-    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
-        IMAGE_NAME=${ORIGINAL_IMAGE_NAME}
-    else
-        IMAGE_NAME=${ORIGINAL_IMAGE_NAME}-SNAPSHOT
-    fi
-}
-
 ### Build and Push Images
 
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
     # Build Detect Base Image
-    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${detectVersion}
-
     removeImage "${IMAGE_NAME}"
     removeImage "$(getInternalImageName "${IMAGE_NAME}")"
 
@@ -137,7 +126,6 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     GRADLE_DOCKERFILE=gradle-dockerfile
     for gradleVersion in "${GRADLE_VERSIONS[@]}";
         do
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-gradle-${gradleVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${GRADLE_DOCKERFILE} ${gradleVersion}
             publishImage ${IMAGE_NAME}
     done
@@ -146,14 +134,12 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     MAVEN_DOCKERFILE=maven-dockerfile
     for mavenVersion in "${MAVEN_VERSIONS[@]}";
         do
-            addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-maven-${mavenVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${MAVEN_DOCKERFILE} ${mavenVersion}
             publishImage ${IMAGE_NAME}
     done
 
     # Npm
     NPM_DOCKERFILE=npm-dockerfile
-    addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${DETECT_VERSION}-npm
     buildPkgMgrImage ${IMAGE_NAME} ${IMAGE_ORG} ${DETECT_VERSION} ${NPM_DOCKERFILE}
     publishImage ${IMAGE_NAME}
 
