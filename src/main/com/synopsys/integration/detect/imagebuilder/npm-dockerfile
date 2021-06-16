@@ -9,7 +9,9 @@ RUN apk update && apk add bash
 ARG NODE_VERSION
 ARG NPM_VERSION
 
-RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/latest-stable/main/ npm=${NODE_VERSION}
+ARG ALPINE_VERSION
+
+RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v${ALPINE_VERSION}/main/ npm=${NODE_VERSION}
 
 RUN if [ $(npm --version) != ${NPM_VERSION} ]; then echo "Failed to install ${NPM_VERSION}" && exit -1 ; fi \
     && node --version

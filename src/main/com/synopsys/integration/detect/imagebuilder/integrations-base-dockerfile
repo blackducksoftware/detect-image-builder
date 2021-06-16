@@ -1,11 +1,14 @@
-FROM alpine:3.13
+ARG ALPINE_VERSION
+
+FROM alpine:${ALPINE_VERSION}
 
 # Update, get bash
 RUN apk update && apk add bash
 
 # Java
-RUN apk --no-cache add openjdk11-jre
+ARG JAVA_VERSION
+RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
 
-ENV BDS_JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 
 RUN java --version
