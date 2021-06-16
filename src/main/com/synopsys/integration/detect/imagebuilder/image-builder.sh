@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 ### Config
 
@@ -20,6 +20,12 @@ DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
 
 # This constant will serve as default when accessing a "latest compatible version map" (it should be higher than the highest version of any supported package manager, Detect, etc
 readonly NO_LATEST_COMPATIBLE_VERSION=9999
+
+# Alpine
+ALPINE_VERSION=3.13
+
+# Java
+JAVA_VERSION=11
 
 # Detect
 DETECT_VERSIONS=( 7.0.0 6.9.1 )
@@ -89,13 +95,14 @@ function publishImage() {
 
     # Publish internal
     docker tag "${RAW_IMAGE_NAME}" "${INTERNAL_IMAGE_NAME}"
-    pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
-    removeImage "${INTERNAL_IMAGE_NAME}"
+    #pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
+    #removeImage "${INTERNAL_IMAGE_NAME}"
 
     if [[ ${RELEASE_BUILD} == "TRUE" ]];
     then
         # Publish external
-        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+        #pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+        echo "fake publish"
     fi
     set +e
 }
@@ -106,9 +113,9 @@ function pushImage() {
     local DOCKER_PASSWORD=$3
     local DOCKER_REGISTRY=$4
 
-    docker login --username "${DOCKER_LOGIN}" --password "${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
-    docker push "${IMAGE_NAME}"
-    docker logout
+    #docker login --username "${DOCKER_LOGIN}" --password "${DOCKER_PASSWORD}" "${DOCKER_REGISTRY}"
+    #docker push "${IMAGE_NAME}"
+    #docker logout
     echo "Image ${IMAGE_NAME} successfully published"
 }
 
@@ -122,12 +129,14 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     removeImage "$(getInternalImageName "${IMAGE_NAME}")"
 
     logAndRun docker build \
+        --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
+        --build-arg "JAVA_VERSION=${JAVA_VERSION}" \
         --build-arg "DETECT_VERSION=${detectVersion}" \
         -t ${IMAGE_NAME} \
         -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
         .
 
-    publishImage "${IMAGE_NAME}"
+    #publishImage "${IMAGE_NAME}"
 
     # Build Package Manager Images
 
@@ -139,7 +148,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
             then
                 IMAGE_NAME=${ORG}/detect:${detectVersion}-gradle-${gradleVersion}
                 buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${GRADLE_DOCKERFILE} ${gradleVersion}
-                pushImage ${IMAGE_NAME}
+                publishImage ${IMAGE_NAME}
             fi
     done
 
@@ -149,7 +158,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
         do
             IMAGE_NAME=${ORG}/detect:${detectVersion}-maven-${mavenVersion}
             buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${MAVEN_DOCKERFILE} ${mavenVersion}
-            pushImage ${IMAGE_NAME}
+            publishImage ${IMAGE_NAME}
     done
 
     # Npm
@@ -164,6 +173,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
 
             logAndRun docker build \
                 --build-arg "ORG=${ORG}" \
+                --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
                 --build-arg "DETECT_VERSION=${detectVersion}" \
                 --build-arg "NODE_VERSION=${nodeVersion}" \
                 --build-arg "NPM_VERSION=${NPM_VERSION}" \
@@ -171,7 +181,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
                 -f ${NPM_DOCKERFILE} \
                 .
 
-            pushImage ${IMAGE_NAME}
+            publishImage ${IMAGE_NAME}
     done
 
 done
