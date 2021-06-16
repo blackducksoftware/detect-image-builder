@@ -8,8 +8,6 @@ set -u
 # cd to same directory that script is in
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-RELEASE_BUILD=${RUN_RELEASE:-FALSE}
-
 RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
 
 IMAGE_ORG=blackducksoftware
@@ -23,6 +21,23 @@ GRADLE_VERSIONS=( 6.8.2 )
 
 MAVEN_VERSIONS=( 3.8.1 )
 
+# Handle toggle for running release
+shopt -s nocasematch
+if [[ $# == 1 && $1 == true ]]; then
+	RELEASE_BUILD=TRUE
+else
+	RELEASE_BUILD=FALSE
+fi
+shopt -u nocasematch
+
+# set -u is not working inside functions
+# reset expected environment variables here to get benefits of set -u
+DOCKER_REGISTRY_SIG="${DOCKER_REGISTRY_SIG}"
+ARTIFACTORY_DEPLOYER_USER="${ARTIFACTORY_DEPLOYER_USER}"
+ARTIFACTORY_DEPLOYER_PASSWORD="${ARTIFACTORY_DEPLOYER_PASSWORD}"
+DOCKER_INT_BLACKDUCK_USER="${DOCKER_INT_BLACKDUCK_USER}"
+DOCKER_INT_BLACKDUCK_PASSWORD="${DOCKER_INT_BLACKDUCK_PASSWORD}"
+
 ### Functions
 
 # NOTE: When supplying arguments to this function, ORDER MATTERS.
@@ -35,7 +50,7 @@ function buildPkgMgrImage() {
     local PKG_MGR_VERSION=${5:-unused}
 
     removeImage "${IMAGE_NAME}"
-    removeImage "$(getInternalImageName "${IMAGE_NAME}")"
+    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
 
     logAndRun docker build \
         --build-arg "ORG=${ORG}" \
@@ -46,14 +61,12 @@ function buildPkgMgrImage() {
         .
 }
 
-function getInternalImageName() {
-    echo "${DOCKER_REGISTRY_SIG}/$1"
-}
-
 function removeImage() {
     local IMAGE_NAME=$1
 
-    test -n "$(docker images -q "${IMAGE_NAME}")" && docker rmi -f "${IMAGE_NAME}"
+    if docker image inspect "${IMAGE_NAME}" 1> /dev/null 2>&1; then
+        docker rmi -f "${IMAGE_NAME}"
+    fi
 }
 
 function logAndRun() {
@@ -68,7 +81,7 @@ function publishImage() {
     set -e
 
     local RAW_IMAGE_NAME=$1
-    local INTERNAL_IMAGE_NAME="$(getInternalImageName "${RAW_IMAGE_NAME}")"
+    local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
 
     # Login information comes from Jenkins OR from the build server run environment
 
@@ -78,7 +91,9 @@ function publishImage() {
     removeImage "${INTERNAL_IMAGE_NAME}"
 
     # Publish external
-    pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
+        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+    fi
 
     set +e
 }
@@ -114,7 +129,7 @@ for detectVersion in "${DETECT_VERSIONS[@]}";
     addSnapshotToImageNameIfNotRelease ${IMAGE_ORG}/detect:${detectVersion}
 
     removeImage "${IMAGE_NAME}"
-    removeImage "$(getInternalImageName "${IMAGE_NAME}")"
+    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
 
     logAndRun docker build \
         --build-arg "DETECT_VERSION=${detectVersion}" \
