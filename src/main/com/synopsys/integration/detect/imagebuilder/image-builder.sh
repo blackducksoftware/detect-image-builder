@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/local/bin/bash
 
 ### Config
 
@@ -12,7 +12,10 @@ RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
 
 ORG=blackducksoftware
 
-DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
+INTEGRATIONS_BASE_IMAGE_NAME=${ORG}/integrations-base
+INTEGRATIONS_BASE_IMAGE_DOCKERFILE=integrations-base-dockerfile
+
+DETECT_DOCKERFILE=detect-dockerfile
 
 ## Versions to support
 
@@ -62,23 +65,36 @@ DOCKER_INT_BLACKDUCK_PASSWORD="${DOCKER_INT_BLACKDUCK_PASSWORD}"
 ### Functions
 
 # NOTE: When supplying arguments to this function, ORDER MATTERS.
-#   If a package manager doesn't require one of the args (ex. npm doesn't specify a PKG_MGR_VERSION since we're only using the version alpine supports) provide an empty string in its place
+#   If a package manager doesn't require one of the args provide an empty string in its place
 function buildPkgMgrImage() {
     local IMAGE_NAME=$1
-    local ORG=$2
-    local DETECT_VERSION=$3
-    local DOCKERFILE_NAME=$4
-    local PKG_MGR_VERSION=${5:-unused}
+    local DOCKERFILE_NAME=$2
+    local PKG_MGR_VERSION=${3:-unused}
 
     removeImage "${IMAGE_NAME}"
     removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
 
     logAndRun docker build \
         --build-arg "ORG=${ORG}" \
-        --build-arg "DETECT_VERSION=${detectVersion}" \
         --build-arg "PKG_MGR_VERSION=${PKG_MGR_VERSION}" \
         -t ${IMAGE_NAME} \
         -f ${DOCKERFILE_NAME} \
+        .
+}
+
+function buildDetectImage() {
+    local IMAGE_NAME=$1
+    local BASE_IMAGE=$2
+    local DETECT_VERSION=$3
+
+    removeImage "${IMAGE_NAME}"
+    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
+
+    logAndRun docker build \
+        --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
+        --build-arg "DETECT_VERSION=${DETECT_VERSION}" \
+        -t ${IMAGE_NAME} \
+        -f ${DETECT_DOCKERFILE} \
         .
 }
 
@@ -102,6 +118,24 @@ function publishImage() {
     set -e
 
     local RAW_IMAGE_NAME=$1
+
+    publishImageInternal ${RAW_IMAGE_NAME}
+    # Login information comes from Jenkins OR from the build server run environment
+
+    # Publish external
+    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
+        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+        echo ""
+    fi
+
+    set +e
+}
+
+function publishImageInternal() {
+    # Stop execution on an error
+    set -e
+
+    local RAW_IMAGE_NAME=$1
     local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
 
     # Login information comes from Jenkins OR from the build server run environment
@@ -110,11 +144,6 @@ function publishImage() {
     docker tag "${RAW_IMAGE_NAME}" "${INTERNAL_IMAGE_NAME}"
     pushImage "${INTERNAL_IMAGE_NAME}" "${ARTIFACTORY_DEPLOYER_USER}" "${ARTIFACTORY_DEPLOYER_PASSWORD}" "https://${DOCKER_REGISTRY_SIG}/v2/"
     removeImage "${INTERNAL_IMAGE_NAME}"
-
-    # Publish external
-    if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
-        pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
-    fi
 
     set +e
 }
@@ -133,77 +162,93 @@ function pushImage() {
 
 ### Build and Push Images
 
-<< 'NEW_HIERARCHY'
-    alpine:3.13+java11 <-- do we want to have different java's be another level?
-           |            |
-        pkgmgr      detect-slim
-           |
-           detect-customer
-
-
-NEW_HIERARCHY
-
-for detectVersion in "${DETECT_VERSIONS[@]}";
-    do
-    # Build Detect Base Image
-    IMAGE_NAME=${ORG}/detect:${detectVersion}
-    removeImage "${IMAGE_NAME}"
-    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
-
-    logAndRun docker build \
+## Build Base Image
+removeImage "${INTEGRATIONS_BASE_IMAGE_NAME}"
+removeImage "${DOCKER_REGISTRY_SIG}/${INTEGRATIONS_BASE_IMAGE_NAME}"
+logAndRun docker build \
         --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
         --build-arg "JAVA_VERSION=${JAVA_VERSION}" \
-        --build-arg "DETECT_VERSION=${detectVersion}" \
-        -t ${IMAGE_NAME} \
-        -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
+        -t ${INTEGRATIONS_BASE_IMAGE_NAME} \
+        -f ${INTEGRATIONS_BASE_IMAGE_DOCKERFILE} \
         .
 
+publishImageInternal "${INTEGRATIONS_BASE_IMAGE_NAME}"
+
+## Build Detect Slim Images
+for detectVersion in "${DETECT_VERSIONS[@]}";
+    do
+    IMAGE_NAME=${ORG}/detect:${detectVersion}
+    buildDetectImage ${IMAGE_NAME} ${INTEGRATIONS_BASE_IMAGE_NAME} ${detectVersion}
     publishImage "${IMAGE_NAME}"
+done
 
-    # Build Package Manager Images
 
-    # Gradle
-    GRADLE_DOCKERFILE=gradle-dockerfile
-    for gradleVersion in "${GRADLE_VERSIONS[@]}";
-        do
+## Build Package Manager Images, Customer Detect Images
+
+# Gradle
+GRADLE_DOCKERFILE=gradle-dockerfile
+for gradleVersion in "${GRADLE_VERSIONS[@]}";
+    do
+        GRADLE_IMAGE_NAME=${ORG}/gradle:${gradleVersion}
+        buildPkgMgrImage ${GRADLE_IMAGE_NAME} ${GRADLE_DOCKERFILE} ${gradleVersion}
+        publishImageInternal ${GRADLE_IMAGE_NAME}
+
+        # Detect Gradle
+        for detectVersion in "${DETECT_VERSIONS[@]}";
+            do
             if [[ ! ${gradleVersion} > ${DETECT_LATEST_COMPATIBLE_GRADLE[${detectVersion}]-${NO_LATEST_COMPATIBLE_VERSION}} ]];
-            then
-                IMAGE_NAME=${ORG}/detect:${detectVersion}-gradle-${gradleVersion}
-                buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${GRADLE_DOCKERFILE} ${gradleVersion}
-                publishImage ${IMAGE_NAME}
+               then
+               DETECT_IMAGE_NAME=${ORG}/detect:${detectVersion}-gradle-${gradleVersion}
+               buildDetectImage ${DETECT_IMAGE_NAME} ${GRADLE_IMAGE_NAME} ${detectVersion}
+               publishImage ${DETECT_IMAGE_NAME}
             fi
-    done
+        done
+done
 
-    # Maven
-    MAVEN_DOCKERFILE=maven-dockerfile
-    for mavenVersion in "${MAVEN_VERSIONS[@]}";
-        do
-            IMAGE_NAME=${ORG}/detect:${detectVersion}-maven-${mavenVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${MAVEN_DOCKERFILE} ${mavenVersion}
-            publishImage ${IMAGE_NAME}
-    done
+# Maven
+MAVEN_DOCKERFILE=maven-dockerfile
+for mavenVersion in "${MAVEN_VERSIONS[@]}";
+    do
+        MAVEN_IMAGE_NAME=${ORG}/maven:${mavenVersion}
+        buildPkgMgrImage ${MAVEN_IMAGE_NAME} ${MAVEN_DOCKERFILE} ${mavenVersion}
+        publishImageInternal ${MAVEN_IMAGE_NAME}
 
-    # Npm
-    NPM_DOCKERFILE=npm-dockerfile
-    for nodeVersion in "${NODE_VERSIONS[@]}";
-        do
-            NPM_VERSION=${NODE_TO_NPM_VERSIONS[${nodeVersion}]}
-            IMAGE_NAME=${ORG}/detect:${detectVersion}-npm-${NPM_VERSION}
+        # Detect Maven
+        for detectVersion in "${DETECT_VERSIONS[@]}";
+            do
+               DETECT_IMAGE_NAME=${ORG}/detect:${detectVersion}-maven-${mavenVersion}
+               buildDetectImage ${DETECT_IMAGE_NAME} ${MAVEN_IMAGE_NAME} ${detectVersion}
+               publishImage ${DETECT_IMAGE_NAME}
+        done
+done
 
-            # Requires custom build args for npm, node versions
-            removeImage "${IMAGE_NAME}"
+# Npm
+NPM_DOCKERFILE=npm-dockerfile
+for nodeVersion in "${NODE_VERSIONS[@]}";
+    do
+        NPM_VERSION=${NODE_TO_NPM_VERSIONS[${nodeVersion}]}
+        NPM_IMAGE_NAME=${ORG}/npm:${NPM_VERSION}
 
-            logAndRun docker build \
-                --build-arg "ORG=${ORG}" \
-                --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
-                --build-arg "DETECT_VERSION=${detectVersion}" \
-                --build-arg "NODE_VERSION=${nodeVersion}" \
-                --build-arg "NPM_VERSION=${NPM_VERSION}" \
-                -t ${IMAGE_NAME} \
-                -f ${NPM_DOCKERFILE} \
-                .
+        # Requires custom build args for npm, node versions
+        removeImage "${NPM_IMAGE_NAME}"
 
-            publishImage ${IMAGE_NAME}
-    done
+        logAndRun docker build \
+            --build-arg "ORG=${ORG}" \
+            --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
+            --build-arg "DETECT_VERSION=${detectVersion}" \
+            --build-arg "NODE_VERSION=${nodeVersion}" \
+            --build-arg "NPM_VERSION=${NPM_VERSION}" \
+            -t ${NPM_IMAGE_NAME} \
+            -f ${NPM_DOCKERFILE} \
+            .
 
+        publishImageInternal ${NPM_IMAGE_NAME}
+
+        # Detect Npm
+        for detectVersion in "${DETECT_VERSIONS[@]}";
+            do
+               DETECT_IMAGE_NAME=${ORG}/detect:${detectVersion}-npm-${NPM_VERSION}
+               buildDetectImage ${DETECT_IMAGE_NAME} ${NPM_IMAGE_NAME} ${detectVersion}
+               publishImage ${DETECT_IMAGE_NAME}
+        done
 done

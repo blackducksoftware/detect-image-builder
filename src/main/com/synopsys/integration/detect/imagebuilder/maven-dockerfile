@@ -1,5 +1,4 @@
 ARG ORG
-ARG DETECT_VERSION
 
 FROM ${ORG}/integrations-base
 

@@ -2,6 +2,8 @@ ARG BASE_IMAGE
 
 FROM ${BASE_IMAGE}
 
+RUN apk update && apk add curl
+
 # Copy in entrypoint script
 ARG RUN_DETECT_SCRIPT="run-detect.sh"
 
