@@ -4,7 +4,7 @@ buildscript {
 }
 
 ext {
-	runRelease = System.properties['RUN_RELEASE'] ?: false
+	runRelease = true
 }
 
 version '1.0.0-SNAPSHOT'
