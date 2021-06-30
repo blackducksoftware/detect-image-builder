@@ -12,12 +12,10 @@ RUN_DETECT_SCRIPT_NAME=${RUN_DETECT_SCRIPT_NAME:-run-detect.sh}
 
 ORG=blackducksoftware
 
-DETECT_BASE_IMAGE_DOCKERFILE=detect-base-dockerfile
+DETECT_DOCKERFILE=detect-dockerfile
+DETECT_LITE_DOCKERFILE=detect-lite-dockerfile
 
 ## Versions to support
-
-# This constant will serve as default when accessing a "latest compatible version map" (it should be higher than the highest version of any supported package manager, Detect, etc
-readonly NO_LATEST_COMPATIBLE_VERSION=9999
 
 # Alpine
 ALPINE_VERSION=3.13
@@ -27,20 +25,6 @@ JAVA_VERSION=11
 
 # Detect
 DETECT_VERSIONS=( 7.0.0 6.9.1 )
-
-# Gradle
-GRADLE_VERSIONS=( 6.8.2 6.7.1 )
-
-declare -A DETECT_LATEST_COMPATIBLE_GRADLE
-DETECT_LATEST_COMPATIBLE_GRADLE[6.9.1]=6.7.1
-
-# Maven
-MAVEN_VERSIONS=( 3.8.1 )
-
-# Npm
-NODE_VERSIONS=( 14.16.1-r1 ) # Need to specify npm by node version when getting from Alpine apk, so we will maintain a map of node versions to npm versions
-declare -A NODE_TO_NPM_VERSIONS
-NODE_TO_NPM_VERSIONS[14.16.1-r1]=6.14.12
 
 # Handle toggle for running release
 shopt -s nocasematch
@@ -53,34 +37,13 @@ shopt -u nocasematch
 
 # set -u is not working inside functions
 # reset expected environment variables here to get benefits of set -u
-DOCKER_REGISTRY_SIG="${DOCKER_REGISTRY_SIG}"
-ARTIFACTORY_DEPLOYER_USER="${ARTIFACTORY_DEPLOYER_USER}"
-ARTIFACTORY_DEPLOYER_PASSWORD="${ARTIFACTORY_DEPLOYER_PASSWORD}"
-DOCKER_INT_BLACKDUCK_USER="${DOCKER_INT_BLACKDUCK_USER}"
-DOCKER_INT_BLACKDUCK_PASSWORD="${DOCKER_INT_BLACKDUCK_PASSWORD}"
+#DOCKER_REGISTRY_SIG="${DOCKER_REGISTRY_SIG}"
+#ARTIFACTORY_DEPLOYER_USER="${ARTIFACTORY_DEPLOYER_USER}"
+#ARTIFACTORY_DEPLOYER_PASSWORD="${ARTIFACTORY_DEPLOYER_PASSWORD}"
+#DOCKER_INT_BLACKDUCK_USER="${DOCKER_INT_BLACKDUCK_USER}"
+#DOCKER_INT_BLACKDUCK_PASSWORD="${DOCKER_INT_BLACKDUCK_PASSWORD}"
 
 ### Functions
-
-# NOTE: When supplying arguments to this function, ORDER MATTERS.
-#   If a package manager doesn't require one of the args (ex. npm doesn't specify a PKG_MGR_VERSION since we're only using the version alpine supports) provide an empty string in its place
-function buildPkgMgrImage() {
-    local IMAGE_NAME=$1
-    local ORG=$2
-    local DETECT_VERSION=$3
-    local DOCKERFILE_NAME=$4
-    local PKG_MGR_VERSION=${5:-unused}
-
-    removeImage "${IMAGE_NAME}"
-    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
-
-    logAndRun docker build \
-        --build-arg "ORG=${ORG}" \
-        --build-arg "DETECT_VERSION=${detectVersion}" \
-        --build-arg "PKG_MGR_VERSION=${PKG_MGR_VERSION}" \
-        -t ${IMAGE_NAME} \
-        -f ${DOCKERFILE_NAME} \
-        .
-}
 
 function removeImage() {
     local IMAGE_NAME=$1
@@ -97,12 +60,30 @@ function logAndRun() {
     $@
 }
 
+function buildDetectImage() {
+    local IMAGE_NAME=$1
+    local DOCKERFILE=$2
+
+    removeImage "${IMAGE_NAME}"
+    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
+
+    logAndRun docker build \
+        --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
+        --build-arg "JAVA_VERSION=${JAVA_VERSION}" \
+        --build-arg "DETECT_VERSION=${detectVersion}" \
+        -t ${IMAGE_NAME} \
+        -f ${DOCKERFILE} \
+        .
+
+    publishImage "${IMAGE_NAME}"
+}
+
 function publishImage() {
     # Stop execution on an error
     set -e
 
     local RAW_IMAGE_NAME=$1
-    local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
+    #local INTERNAL_IMAGE_NAME="${DOCKER_REGISTRY_SIG}/${RAW_IMAGE_NAME}"
 
     # Login information comes from Jenkins OR from the build server run environment
 
@@ -114,6 +95,7 @@ function publishImage() {
     # Publish external
     if [[ ${RELEASE_BUILD} == "TRUE" ]]; then
         pushImage "${RAW_IMAGE_NAME}" "${DOCKER_INT_BLACKDUCK_USER}" "${DOCKER_INT_BLACKDUCK_PASSWORD}" "https://index.docker.io/v1/"
+        echo ""
     fi
 
     set +e
@@ -135,65 +117,16 @@ function pushImage() {
 
 for detectVersion in "${DETECT_VERSIONS[@]}";
     do
-    # Build Detect Base Image
-    IMAGE_NAME=${ORG}/detect:${detectVersion}
-    removeImage "${IMAGE_NAME}"
-    removeImage "${DOCKER_REGISTRY_SIG}/${IMAGE_NAME}"
+    # Build Standard Detect Image
+    DETECT_IMAGE_NAME=${ORG}/detect:${detectVersion}
+    buildDetectImage ${DETECT_IMAGE_NAME} ${DETECT_DOCKERFILE}
 
-    logAndRun docker build \
-        --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
-        --build-arg "JAVA_VERSION=${JAVA_VERSION}" \
-        --build-arg "DETECT_VERSION=${detectVersion}" \
-        -t ${IMAGE_NAME} \
-        -f ${DETECT_BASE_IMAGE_DOCKERFILE} \
-        .
+    # TODO- tag latest (major version locked)
 
-    publishImage "${IMAGE_NAME}"
+    # Build
+    DETECT_LITE_IMAGE_NAME=${ORG}/detect:${detectVersion}-lite
+    buildDetectImage ${DETECT_LITE_IMAGE_NAME} ${DETECT_LITE_DOCKERFILE}
 
-    # Build Package Manager Images
-
-    # Gradle
-    GRADLE_DOCKERFILE=gradle-dockerfile
-    for gradleVersion in "${GRADLE_VERSIONS[@]}";
-        do
-            if [[ ! ${gradleVersion} > ${DETECT_LATEST_COMPATIBLE_GRADLE[${detectVersion}]-${NO_LATEST_COMPATIBLE_VERSION}} ]];
-            then
-                IMAGE_NAME=${ORG}/detect:${detectVersion}-gradle-${gradleVersion}
-                buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${GRADLE_DOCKERFILE} ${gradleVersion}
-                publishImage ${IMAGE_NAME}
-            fi
-    done
-
-    # Maven
-    MAVEN_DOCKERFILE=maven-dockerfile
-    for mavenVersion in "${MAVEN_VERSIONS[@]}";
-        do
-            IMAGE_NAME=${ORG}/detect:${detectVersion}-maven-${mavenVersion}
-            buildPkgMgrImage ${IMAGE_NAME} ${ORG} ${detectVersion} ${MAVEN_DOCKERFILE} ${mavenVersion}
-            publishImage ${IMAGE_NAME}
-    done
-
-    # Npm
-    NPM_DOCKERFILE=npm-dockerfile
-    for nodeVersion in "${NODE_VERSIONS[@]}";
-        do
-            NPM_VERSION=${NODE_TO_NPM_VERSIONS[${nodeVersion}]}
-            IMAGE_NAME=${ORG}/detect:${detectVersion}-npm-${NPM_VERSION}
-
-            # Requires custom build args for npm, node versions
-            removeImage "${IMAGE_NAME}"
-
-            logAndRun docker build \
-                --build-arg "ORG=${ORG}" \
-                --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
-                --build-arg "DETECT_VERSION=${detectVersion}" \
-                --build-arg "NODE_VERSION=${nodeVersion}" \
-                --build-arg "NPM_VERSION=${NPM_VERSION}" \
-                -t ${IMAGE_NAME} \
-                -f ${NPM_DOCKERFILE} \
-                .
-
-            publishImage ${IMAGE_NAME}
-    done
+    # TODO- tag latest (major version locked)
 
 done
