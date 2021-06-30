@@ -46,7 +46,7 @@ if [[ ${DISPLAY_HELP} == "true" ]]
 then
     CMD="java -jar /${DETECT_JAR} -hv"
 else
-    CMD="java -jar /${DETECT_JAR} --detect.source.path=${SOURCE_DIR} --detect.output.path=${OUTPUT_DIR} ${ARGS}"
+    CMD="java -jar /${DETECT_JAR} --detect.source.path=${SOURCE_DIR} --detect.output.path=${OUTPUT_DIR} --detect.phone.home.passthrough.invoked.by.image=true ${ARGS}"
 fi
 
 echo "Running ${CMD}"
