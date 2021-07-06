@@ -24,7 +24,7 @@ ALPINE_VERSION=3.13
 JAVA_VERSION=11
 
 # Detect
-DETECT_VERSIONS=( 7.0.0 6.9.1 )
+DETECT_VERSIONS=( 7.1.0 7.0.0 6.9.1 )
 
 # Handle toggle for running release
 shopt -s nocasematch

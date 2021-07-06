@@ -14,7 +14,7 @@ ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 # Copy in entrypoint script
 ARG RUN_DETECT_SCRIPT="run-detect.sh"
 
-COPY ./${RUN_DETECT_SCRIPT} /detect/
+COPY ./${RUN_DETECT_SCRIPT} /
 
 # Download Detect jar
 
@@ -27,4 +27,4 @@ RUN JAR_PATH=/synopsys-detect.jar \
     && if [[ ! -f ${JAR_PATH} ]]; then echo "Unable to download Detect ${DETECT_VERSION} jar" && exit -1 ; fi
 
 # Define Docker Image entrypoint
-ENTRYPOINT ["bash", "/detect/run-detect.sh"]
+ENTRYPOINT ["bash", "/run-detect.sh"]

@@ -12,10 +12,9 @@ RUN apk --no-cache add openjdk${JAVA_VERSION}-jre
 ENV BDS_JAVA_HOME=/usr/lib/jvm/java-${JAVA_VERSION}-openjdk
 
 # Copy in entrypoint script
-
 ARG RUN_DETECT_SCRIPT="run-detect.sh"
 
-COPY ./${RUN_DETECT_SCRIPT} /detect/
+COPY ./${RUN_DETECT_SCRIPT} /
 
 # Download Detect jar
 
@@ -23,9 +22,9 @@ ARG DETECT_VERSION
 ARG DETECT_BINARY_REPO_URL=https://sig-repo.synopsys.com
 ARG DETECT_SOURCE=${DETECT_BINARY_REPO_URL}/bds-integrations-release/com/synopsys/integration/synopsys-detect/${DETECT_VERSION}/synopsys-detect-${DETECT_VERSION}.jar
 
-RUN JAR_PATH=/detect/synopsys-detect.jar \
+RUN JAR_PATH=/synopsys-detect.jar \
     && curl --silent -w "%{http_code}" -L -o ${JAR_PATH} --create-dirs ${DETECT_SOURCE} \
     && if [[ ! -f ${JAR_PATH} ]]; then echo "Unable to download Detect ${DETECT_VERSION} jar" && exit -1 ; fi
 
 # Define Docker Image entrypoint
-ENTRYPOINT ["bash", "/detect/run-detect.sh", "--detect.tools.excluded=DETECTOR"]
+ENTRYPOINT ["bash", "/run-detect.sh", "--detect.tools.excluded=DETECTOR"]
